@@ -20,12 +20,23 @@ match a.solve(b) {
 
 ## ⚠️ 项目状态（2026-10-13）
 
-**骨架阶段。** 仓库结构、接口契约、类型映射表、踩坑记录已就位；
-`src/` 下的代码**尚未在本机通过编译验证** —— MoonBit 工具链与 `clang-cl`
-正在安装，技术穿刺见 [docs/ROADMAP.md](docs/ROADMAP.md) 第 1 周任务。
+**MoonBit 侧已通过类型检查；C++ 侧尚未编译验证。**
 
-请把本文档的 API 章节当作**接口契约**，而不是"已验证可用"的承诺。
-待验证清单见 [docs/PITFALLS.md](docs/PITFALLS.md) 第 8 节。
+| 部分 | 状态 |
+|---|---|
+| MoonBit API 层、FFI 声明、17 个单元测试、3 个示例 | ✅ `moon check --target native` 通过（0 errors，本机 moonc v0.10.15） |
+| C++ 胶水层 `src/eigen_shim.cpp` | ⏳ 未编译 —— 本机缺 MSVC 的 C++ 工作负载 |
+| 运行期行为（真实矩阵运算、ASan/UBSan） | ⏳ 待 `moon test --target native` 跑通 |
+
+本机已装 MoonBit（`moon 0.1.20261012`）但没有 C++ 工具链，moon 的报错是：
+
+```
+Windows native backend requires MSVC Build Tools with C++ tools and Windows SDK
+```
+
+诊断详情与解决办法见 [docs/PITFALLS.md](docs/PITFALLS.md) 第 9 节。
+
+**因此：接口契约已由类型系统保证，但"能不能算出正确结果"还没有被验证过。**
 
 ---
 

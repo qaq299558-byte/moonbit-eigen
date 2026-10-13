@@ -14,6 +14,7 @@
 //    （曾用到的 Double::round / to_int / to_double 与 StringBuilder
 //      已在 to_string 重构中移除，见 docs/DECISIONS.md D8。）
 
+///|
 /// 动态尺寸的双精度矩阵。
 pub struct Matrix {
   handle : EigenMatrix
@@ -23,6 +24,7 @@ pub struct Matrix {
 // 内部工具
 // ---------------------------------------------------------------------------
 
+///|
 /// 取出 C 侧记录的上一次错误信息。
 ///
 /// 注意 `[:]`：官方 `encoding/utf8` 的接口是
@@ -33,6 +35,7 @@ fn last_error() -> String {
   @utf8.decode_lossy(mb_eigen_last_error()[:])
 }
 
+///|
 /// 统一的有效性检查：rows() < 0 表示 C 侧返回了错误哨兵。
 fn ensure_valid(handle : EigenMatrix) -> Result[Unit, String] {
   if mb_eigen_matrix_rows(handle) < 0 {
@@ -42,16 +45,22 @@ fn ensure_valid(handle : EigenMatrix) -> Result[Unit, String] {
   }
 }
 
+///|
 /// 把 C 侧返回的句柄包成 Matrix，失败则转成 Err。
 fn wrap(handle : EigenMatrix) -> Result[Matrix, String] {
   match ensure_valid(handle) {
-    Ok(_) => Ok({ handle })
+    Ok(_) => Ok({ handle, })
     Err(msg) => Err(msg)
   }
 }
 
+///|
 /// 调用二元运算的公共路径：op 0=加 1=减 2=乘。
-fn binary(self : Matrix, other : Matrix, op : Int) -> Result[Matrix, String] {
+fn Matrix::binary(
+  self : Matrix,
+  other : Matrix,
+  op : Int32,
+) -> Result[Matrix, String] {
   wrap(mb_eigen_matrix_binary(self.handle, other.handle, op))
 }
 
@@ -59,15 +68,17 @@ fn binary(self : Matrix, other : Matrix, op : Int) -> Result[Matrix, String] {
 // 构造
 // ---------------------------------------------------------------------------
 
+///|
 /// 全零矩阵。
-pub fn Matrix::zeros(rows : Int, cols : Int) -> Result[Matrix, String] {
+pub fn Matrix::zeros(rows : Int32, cols : Int32) -> Result[Matrix, String] {
   wrap(mb_eigen_matrix_new(rows, cols))
 }
 
+///|
 /// 从行主序的一维数组构造矩阵，要求 data.length() == rows * cols。
 pub fn Matrix::from_array(
-  rows : Int,
-  cols : Int,
+  rows : Int32,
+  cols : Int32,
   data : Array[Double],
 ) -> Result[Matrix, String] {
   if rows < 0 || cols < 0 {
@@ -92,29 +103,41 @@ pub fn Matrix::from_array(
 // 元信息与元素访问
 // ---------------------------------------------------------------------------
 
-pub fn Matrix::rows(self : Matrix) -> Int {
+///|
+pub fn Matrix::rows(self : Matrix) -> Int32 {
   mb_eigen_matrix_rows(self.handle)
 }
 
-pub fn Matrix::cols(self : Matrix) -> Int {
+///|
+pub fn Matrix::cols(self : Matrix) -> Int32 {
   mb_eigen_matrix_cols(self.handle)
 }
 
-pub fn Matrix::get(self : Matrix, i : Int, j : Int) -> Result[Double, String] {
+///|
+pub fn Matrix::get(
+  self : Matrix,
+  i : Int32,
+  j : Int32,
+) -> Result[Double, String] {
   if i < 0 || j < 0 || i >= self.rows() || j >= self.cols() {
-    return Err("下标 (\{i}, \{j}) 越界：矩阵尺寸为 \{self.rows()}x\{self.cols()}")
+    return Err(
+      "下标 (\{i}, \{j}) 越界：矩阵尺寸为 \{self.rows()}x\{self.cols()}",
+    )
   }
   Ok(mb_eigen_matrix_get(self.handle, i, j))
 }
 
+///|
 pub fn Matrix::set(
   self : Matrix,
-  i : Int,
-  j : Int,
+  i : Int32,
+  j : Int32,
   value : Double,
 ) -> Result[Unit, String] {
   if i < 0 || j < 0 || i >= self.rows() || j >= self.cols() {
-    return Err("下标 (\{i}, \{j}) 越界：矩阵尺寸为 \{self.rows()}x\{self.cols()}")
+    return Err(
+      "下标 (\{i}, \{j}) 越界：矩阵尺寸为 \{self.rows()}x\{self.cols()}",
+    )
   }
   if mb_eigen_matrix_set(self.handle, i, j, value) != 0 {
     return Err(last_error())
@@ -122,6 +145,7 @@ pub fn Matrix::set(
   Ok(())
 }
 
+///|
 /// 导出为行主序的一维数组。
 pub fn Matrix::to_array(self : Matrix) -> Result[Array[Double], String] {
   let n = self.rows() * self.cols()
@@ -129,8 +153,10 @@ pub fn Matrix::to_array(self : Matrix) -> Result[Array[Double], String] {
   if mb_eigen_matrix_copy_to(self.handle, out, n) != 0 {
     return Err(last_error())
   }
-  // 同样手工搬运，避免依赖 Array::from_fixed_array。
-  let mut result : Array[Double] = []
+  // 手工搬运，避免依赖 Array::from_fixed_array。
+  // 注意不加 mut：Array::push 接收 self，通过方法改内容不需要绑定可变
+  // （moonc 会报 error 15 unused_mut）。
+  let result : Array[Double] = []
   for i = 0; i < n; i = i + 1 {
     result.push(out[i])
   }
@@ -141,31 +167,38 @@ pub fn Matrix::to_array(self : Matrix) -> Result[Array[Double], String] {
 // 运算
 // ---------------------------------------------------------------------------
 
+///|
 pub fn Matrix::add(self : Matrix, other : Matrix) -> Result[Matrix, String] {
-  binary(self, other, 0)
+  self.binary(other, 0)
 }
 
+///|
 pub fn Matrix::sub(self : Matrix, other : Matrix) -> Result[Matrix, String] {
-  binary(self, other, 1)
+  self.binary(other, 1)
 }
 
+///|
 pub fn Matrix::mul(self : Matrix, other : Matrix) -> Result[Matrix, String] {
-  binary(self, other, 2)
+  self.binary(other, 2)
 }
 
+///|
 pub fn Matrix::scale(self : Matrix, k : Double) -> Result[Matrix, String] {
   wrap(mb_eigen_matrix_scale(self.handle, k))
 }
 
+///|
 pub fn Matrix::transpose(self : Matrix) -> Result[Matrix, String] {
   wrap(mb_eigen_matrix_transpose(self.handle))
 }
 
+///|
 /// 解线性方程组 Ax = b。
 pub fn Matrix::solve(self : Matrix, b : Matrix) -> Result[Matrix, String] {
   wrap(mb_eigen_matrix_solve(self.handle, b.handle))
 }
 
+///|
 /// 内积：同尺寸时为其逐元素乘积之和（向量即点积）。
 pub fn Matrix::dot(self : Matrix, other : Matrix) -> Result[Double, String] {
   if self.rows() * self.cols() != other.rows() * other.cols() {
@@ -174,15 +207,19 @@ pub fn Matrix::dot(self : Matrix, other : Matrix) -> Result[Double, String] {
   Ok(mb_eigen_matrix_dot(self.handle, other.handle))
 }
 
+///|
 /// Frobenius 范数。
 pub fn Matrix::norm(self : Matrix) -> Double {
   mb_eigen_matrix_norm(self.handle)
 }
 
+///|
 /// 行列式，要求方阵。
 pub fn Matrix::det(self : Matrix) -> Result[Double, String] {
   if self.rows() != self.cols() {
-    return Err("行列式要求方阵，当前为 \{self.rows()}x\{self.cols()}")
+    return Err(
+      "行列式要求方阵，当前为 \{self.rows()}x\{self.cols()}",
+    )
   }
   Ok(mb_eigen_matrix_det(self.handle))
 }
@@ -194,6 +231,7 @@ pub fn Matrix::det(self : Matrix) -> Result[Double, String] {
 // MoonBit 侧确实在提供自己的东西。
 // ---------------------------------------------------------------------------
 
+///|
 /// 把矩阵渲染成可读的多行字符串。
 ///
 /// 刻意只用最基础的字符串拼接与 Show 插值：**不依赖** StringBuilder、

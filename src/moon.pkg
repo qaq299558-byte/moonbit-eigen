@@ -10,7 +10,7 @@ import {
   "moonbitlang/core/builtin",
 
   // C 侧返回 UTF-8 字节，MoonBit 侧解码，需要 @utf8 别名。
-  "moonbitlang/core/encoding/utf8" @utf8,
+  "moonbitlang/core/encoding/utf8",
 }
 
 options(
@@ -30,29 +30,30 @@ options(
   // 官方 agent skill 明确劝阻该写法：它会阻止下游包在其它后端构建。
   // 正确做法是用 targets 只把 FFI 声明文件限制在 native，
   // 这样纯 MoonBit 的部分（API 层、格式化、测试）在其它后端仍可编译。
-  targets: {
-    "ffi.mbt": [ "native" ],
-  },
+  targets: { "ffi.mbt": [ "native" ] },
 
   // ── 编译器配置 ────────────────────────────────────────────────────────
-  // Windows 上 cc 只能是 MSVC 兼容驱动（cl.exe / clang-cl.exe）；
-  // MinGW 被官方明确排除（见 docs/PITFALLS.md 第 2 节）。
+  // 刻意**不设置 cc / stub-cc**，让 moon 自己发现工具链。
   //
-  // 官方 skill 的两条警告及我们的处理：
-  //   · "设置 cc 会禁用 debug 构建的 TCC" —— 接受：Windows 上必须
-  //     显式指定 MSVC 兼容驱动。
-  //   · "带 -I/-L 的 cc-flags 会破坏 Windows 可移植性" —— 因此 cc-flags
-  //     里**不放任何路径**；Eigen 用相对包含引入（见 eigen_shim.hpp），
-  //     从而也不受 issue #586（cc-flags 按 pwd 解析）影响。
+  // 原因：Windows 上 moon 要求 "MSVC Build Tools with C++ tools and Windows SDK"，
+  // 并用 find-msvc-tools 自动发现（moon PR #1866）。硬编码 clang-cl 会让
+  // "装了 MSVC C++ 工作负载但没装 LLVM" 的机器直接失败 —— 本机正是这种情况
+  // （见 docs/DECISIONS.md D13）。官方 agent skill 也建议不要设 cc：
+  // 它会禁用 debug 构建的 TCC 加速。
+  //
+  // 若你改用 LLVM 的 clang-cl（而不是 MSVC 工作负载），把这两行加回来：
+  //   "cc": "clang-cl",  "stub-cc": "clang-cl",
+  //
+  // cc-flags 里**不放任何路径**：Eigen 用相对包含引入（见 eigen_shim.hpp），
+  // 从而不受 issue #586（cc-flags 按 pwd 解析）影响。
   link: {
     "native": {
-      "cc": "clang-cl",
-      "stub-cc": "clang-cl",
       // /EHsc: 开启标准 C++ 异常（Eigen 断言与 std::exception 需要）
       // /bigobj: Eigen 模板展开产生大量 COMDAT 段，MSVC 系需要它
-      // /O1: 压低优化级别以控制模板编译时间（Eigen 编译慢是本项目主要时间风险）
+      // /O1: 压低优化级别以控制模板编译时间
+      // 这三个 flag cl.exe 与 clang-cl 都认。
       "cc-flags": "/std:c++17 /EHsc /bigobj /O1",
-      // clang-cl 走 MSVC ABI，C++ 运行时随驱动自动链接。
+      // cl.exe 走 MSVC ABI，C++ 运行时随驱动自动链接。
       // [VERIFY] Linux/CI 上应改为 "-lstdc++"（见 docs/ROADMAP.md 的 CI 任务）。
       "cc-link-flags": "",
     },

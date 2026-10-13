@@ -229,3 +229,79 @@ builtin 的清单在抓取时被截断（100KB 上限），因此测试里改用
 
 **这条决策的普适价值**：`.mbti` 是**机器生成的**，所以它不会像文档那样滞后于实现。
 以后写任何 MoonBit 代码，遇到不确定的 API，第一反应应当是找对应包的 `.mbti`。
+
+---
+
+## D13 · 2026-10-13 · 首次跑通 `moon check`：改了 4 处真问题
+
+**背景**：本机其实已装好 MoonBit（`moon 0.1.20261012` / `moonc v0.10.15`），
+只是没进 PATH。缺的只有 C++ 工具链。既然编译器可用，就用它把此前所有
+"凭推理写下的代码"过了一遍 —— **结果证明推理确实不可靠**。
+
+### 4 处真实问题（全部由编译器发现，无一是靠读文档能发现的）
+
+**1. `moon.mod.json` 已不再被支持**
+
+```
+`moon.mod.json` at 'D:\moonbit\moonbit-eigen' is no longer supported.
+Run `moon fmt` to migrate to `moon.mod`.
+```
+
+这个版本带 `rr_moon_mod` 特性开关，模块配置必须用新的 `moon.mod`。
+按提示 `moon fmt` 迁移即可。**教训**：配置文件格式的演进比文档快。
+
+**2. extern 指针参数必须标注 `#borrow` / `#owned`（error 55，是错误不是警告）**
+
+```
+FFI parameter of pointer type should be annotated with either #borrow or #owned,
+the default calling convention is currently #owned and it will be changed in the future.
+```
+
+**这是一处真实的、我推理错了的内存管理 bug**：我原来的 shim 接收句柄后不做
+`moonbit_decref`，而这在 owned 约定下是必须的 —— 不处理，每个矩阵对象都会泄漏
+（引用计数永不归零，finalizer 永不触发）。
+
+现在全部标成 `#borrow`，因为 shim 确实只在调用期间读写、不保存指针。
+这条标注与 `src/eigen_shim.cpp` 的实际行为是**互相印证**的：
+如果哪天 shim 开始保存指针，就必须改成 `#owned` 并补上 decref。
+
+**3. `Array::push` 改内容不需要 `let mut`（error 15）**
+
+`let mut out : Array[Double] = []` 后 `out.push(x)` → 报 `unused_mut`。
+因为 `Array::push(Self[T], T)` 接收 `self`，通过方法改内容不涉及绑定的可变性。
+（但 `let mut s = "..."` 后 `s = s + ...` 这种**重新赋值**仍然需要 `mut`。）
+
+**4. `moon.mod` 里的 `source = "src"` 会把 `examples/` 静默排除在模块之外**
+
+这是最隐蔽的一条：**示例包不报错、只是不被检查**。
+验证方式是往示例里注入一个类型错误，然后看 `moon check` 是否报 —— 结果**不报**。
+移除 `source = "src"` 后示例立刻被纳入，并当场暴露出第 3 条的同类错误。
+
+**教训**：一个"检查通过"的绿色结果，也可能是"根本没检查"。
+**验证覆盖范围本身也需要被验证。**
+
+### 另外两条操作层面的经验
+
+- **`moon check` 确实检查测试文件**（`_wbtest.mbt`）——用注入错误的方式确认过。
+  但只覆盖**属于本模块的包**；若要显式指定，用 `moon check --target native <包路径>`。
+- **`moon check --target wasm-gc` 不能用来绕开 C 编译器做类型检查**：
+  wasm-gc 后端直接报 `extern "C" is unsupported in wasm-gc backend`（error 4156）。
+- 方法声明为 `fn Type::name(self, ...)` 时，调用必须写成 `self.name(...)` 或
+  `Type::name(...)`；裸写 `name(...)` 会报 `unbound`（error 4021）。
+
+### 当前状态
+
+```
+$ moon check --target native
+Finished. moon: ran 3 tasks, now up to date (1 warnings, 0 errors)
+```
+
+**全部 MoonBit 代码已通过类型检查**（API 层 + FFI 声明 + 17 个测试 + 3 个示例）。
+剩余未验证的**只有 C++ 侧**，而它卡在一件明确的事上：
+本机装了 VS Build Tools 18，但**没有 C++ 工作负载**
+（`vswhere -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64` 返回空，
+全盘找不到 `cl.exe`）。moon 的报错也正是这句：
+
+```
+Windows native backend requires MSVC Build Tools with C++ tools and Windows SDK
+```

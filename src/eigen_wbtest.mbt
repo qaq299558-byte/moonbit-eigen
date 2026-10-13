@@ -16,14 +16,22 @@
 //   · 正确性：与手算结果对比（小尺寸，可核对）
 //   · 错误路径：维度不匹配、越界、奇异矩阵 —— 跨语言边界最容易出事的地方
 
+///|
 /// 断言两个 double 在容差内相等。
 fn assert_close(actual : Double, expected : Double, tol : Double) -> Unit {
-  let diff = if actual > expected { actual - expected } else { expected - actual }
+  let diff = if actual > expected {
+    actual - expected
+  } else {
+    expected - actual
+  }
   if diff > tol {
-    abort("期望 \{expected}，实际 \{actual}（差值 \{diff} 超过容差 \{tol}）")
+    abort(
+      "期望 \{expected}，实际 \{actual}（差值 \{diff} 超过容差 \{tol}）",
+    )
   }
 }
 
+///|
 /// 构造一个已知矩阵：[[1,2],[3,4]]
 fn m2x2() -> Matrix {
   match Matrix::from_array(2, 2, [1.0, 2.0, 3.0, 4.0]) {
@@ -32,14 +40,16 @@ fn m2x2() -> Matrix {
   }
 }
 
+///|
 /// 取值的简写，测试里到处要用。
-fn val(m : Matrix, i : Int, j : Int) -> Double {
+fn val(m : Matrix, i : Int32, j : Int32) -> Double {
   match m.get(i, j) {
     Ok(v) => v
     Err(msg) => abort("读取 (\{i},\{j}) 失败: \{msg}")
   }
 }
 
+///|
 test "shim probe 报告 C++17 与 Eigen 3.x" {
   // 最小可信度证据：能返回非零就说明 C++ 胶水真的被编译进构建了。
   // 这个测试同时是技术穿刺的判定依据（见 scripts/spike.ps1 与 docs/ROADMAP.md）。
@@ -49,6 +59,7 @@ test "shim probe 报告 C++17 与 Eigen 3.x" {
   }
 }
 
+///|
 test "zeros 创建正确的尺寸" {
   let m = match Matrix::zeros(3, 4) {
     Ok(m) => m
@@ -59,6 +70,7 @@ test "zeros 创建正确的尺寸" {
   }
 }
 
+///|
 test "from_array 与 to_array 往返一致" {
   let data : Array[Double] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
   let m = match Matrix::from_array(2, 3, data) {
@@ -77,6 +89,7 @@ test "from_array 与 to_array 往返一致" {
   }
 }
 
+///|
 test "元素读写" {
   let m = match Matrix::zeros(2, 2) {
     Ok(m) => m
@@ -89,6 +102,7 @@ test "元素读写" {
   assert_close(val(m, 1, 0), 7.5, 1.0e-12)
 }
 
+///|
 test "矩阵乘法与手算结果一致" {
   // [[1,2],[3,4]] * [[5,6],[7,8]] = [[19,22],[43,50]]
   let a = m2x2()
@@ -106,6 +120,7 @@ test "矩阵乘法与手算结果一致" {
   assert_close(val(c, 1, 1), 50.0, 1.0e-9)
 }
 
+///|
 test "加減法" {
   let a = m2x2()
   let b = match Matrix::from_array(2, 2, [5.0, 6.0, 7.0, 8.0]) {
@@ -127,6 +142,7 @@ test "加減法" {
   assert_close(val(diff, 1, 1), 4.0, 1.0e-12)
 }
 
+///|
 test "行列式与手算一致" {
   // det([[1,2],[3,4]]) = -2
   match m2x2().det() {
@@ -135,6 +151,7 @@ test "行列式与手算一致" {
   }
 }
 
+///|
 test "转置" {
   let m = match Matrix::from_array(2, 3, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]) {
     Ok(m) => m
@@ -151,6 +168,7 @@ test "转置" {
   assert_close(val(t, 2, 1), 6.0, 1.0e-12)
 }
 
+///|
 test "数乘与范数" {
   let m = m2x2()
   let scaled = match m.scale(2.0) {
@@ -162,6 +180,7 @@ test "数乘与范数" {
   assert_close(m.norm(), 5.477225575051661, 1.0e-9)
 }
 
+///|
 test "内积" {
   // [1,2,3] · [4,5,6] = 32
   let a = match Matrix::from_array(1, 3, [1.0, 2.0, 3.0]) {
@@ -178,6 +197,7 @@ test "内积" {
   }
 }
 
+///|
 test "解线性方程组 Ax=b" {
   // [[2,1],[1,3]] x = [3,5]  =>  x = [0.8, 1.4]
   let a = match Matrix::from_array(2, 2, [2.0, 1.0, 1.0, 3.0]) {
@@ -196,6 +216,7 @@ test "解线性方程组 Ax=b" {
   assert_close(val(x, 1, 0), 1.4, 1.0e-9)
 }
 
+///|
 test "to_string 输出稳定且随尺寸变化" {
   // 刻意不依赖 String::contains（该符号在 builtin 的接口清单里未能确认，
   // 见 docs/PITFALLS.md 第 8 节）。改用已确认的 Eq for String 做两条断言：
@@ -217,6 +238,7 @@ test "to_string 输出稳定且随尺寸变化" {
 
 // ── 错误路径：跨语言边界最容易出事的地方 ──────────────────────────────────
 
+///|
 test "尺寸不匹配的加法返回 Err 而不是崩溃" {
   let a = m2x2()
   let b = match Matrix::zeros(3, 3) {
@@ -231,6 +253,7 @@ test "尺寸不匹配的加法返回 Err 而不是崩溃" {
   }
 }
 
+///|
 test "非方阵求行列式返回 Err" {
   let m = match Matrix::zeros(2, 3) {
     Ok(m) => m
@@ -242,6 +265,7 @@ test "非方阵求行列式返回 Err" {
   }
 }
 
+///|
 test "越界访问返回 Err" {
   match m2x2().get(5, 5) {
     Ok(_) => abort("应当失败：越界访问")
@@ -249,6 +273,7 @@ test "越界访问返回 Err" {
   }
 }
 
+///|
 test "奇异矩阵求解返回 Err" {
   // [[1,2],[2,4]] 奇异（第二行是第一行的 2 倍）
   let a = match Matrix::from_array(2, 2, [1.0, 2.0, 2.0, 4.0]) {
@@ -265,6 +290,7 @@ test "奇异矩阵求解返回 Err" {
   }
 }
 
+///|
 test "数据长度不匹配时在 MoonBit 侧就被拦下" {
   match Matrix::from_array(2, 2, [1.0, 2.0, 3.0]) {
     Ok(_) => abort("应当失败：长度不匹配")
