@@ -47,7 +47,7 @@
 - [ ] 按固定版本获取 Eigen：`powershell -File scripts/fetch-eigen.ps1`（**下一步**）
 - [ ] 实现并跑通 `mb_eigen_shim_probe`（返回 ≥ 17000 即证明 C++17 + Eigen 都进来了）
 - [ ] 跑通 `moon test --target native`（17 个测试全绿）
-- [ ] **把 ASan 接上**（官方 agent skill 的做法：`-fsanitize=address -fsanitize=undefined`）
+- [x] ~~**把 ASan 接上**~~ → ✅ **10/13 完成**（Windows/MSVC）：18/18 在 ASan 生效下通过，产物确认引用 `clang_rt.asan`。配方见 docs/PITFALLS.md 第 12 节
       —— 官方明确建议把它作为**第 1 周交付物**而非最后一步，因为
       所有权类 bug 大多"运行时才炸、且不炸在出错点"
 

@@ -631,3 +631,88 @@ spike.ps1       exit = 0
 demo.ps1        exit = 0
 build-shim.ps1  exit = 0
 ```
+
+---
+
+## 12. AddressSanitizer 接入（Windows / MSVC 实测配方）
+
+### 12.1 可行，而且配方很短
+
+**已实测通过**：`moon test --target native src` 在 ASan 生效下 **18/18 通过**，
+产物确认引用 `clang_rt.asan`。
+
+```
+1. 往 src/moon.pkg 的 stub-cc-flags 里加 /fsanitize=address
+2. 把 ASan 运行时 DLL 所在目录放进 PATH          ← 少了这步必然失败
+3. （可选）cc-link-flags 加 /DEBUG，让报告带行列号
+```
+
+关于第 1 步：插桩后的 `.obj` 会自动带上 `clang_rt.asan` 的 default-lib 指令，
+**因此不需要**往 `cc-link-flags` 里加 `/fsanitize=address`。
+加了反而会让 link.exe 报一串：
+
+```
+LINK : warning LNK4044: 无法识别的选项"/fsanitize=address"；已忽略
+```
+
+### 12.2 坑一：`0xc0000135`（找不到 ASan 运行时 DLL）
+
+不设置 PATH 时，测试进程直接退出：
+
+```
+The test executable exited with exit code: 0xc0000135
+```
+
+`0xc0000135` = `STATUS_DLL_NOT_FOUND`。缺的是
+`clang_rt.asan_dynamic-x86_64.dll`，它就在 **cl.exe 自己的目录**下：
+
+```
+<VS>\VC\Tools\MSVC\<版本>\bin\Hostx64\x64\clang_rt.asan_dynamic-x86_64.dll
+```
+
+所以从 "Developer Command Prompt"（vcvars 已初始化 PATH）里跑就没问题，
+而在普通终端里跑就会撞上这个 —— **看起来像测试失败，其实是环境问题**。
+
+### 12.3 坑二：假绿（比没有 ASan 更危险）
+
+ASan 最坏的失败模式是**没生效却报告成功**。本项目实际踩到过两种：
+
+**形式一：脚本注入了一个不存在的字段。**
+旧版 `run-asan.sh` 用正则替换 `cc-flags` / `cc-link-flags`，
+但本仓库**刻意没有设置这两个字段**（留给 moon 自动发现工具链），
+于是替换静默失败，脚本照样打印"sanitizer 运行结束（无输出即无问题）"。
+
+**形式二：测试通过，但产物里没有插桩。**
+必须去产物里找证据，而不是相信"跑通了"：
+
+```
+grep -a '__asan' <测试 exe>        # Linux/macOS
+```
+```powershell
+# Windows：在 exe 字节里找 clang_rt.asan / __asan
+```
+
+现在 `scripts/run-asan.ps1` 与 `scripts/run-asan.sh` 都有三道断言：
+目标字段必须存在 → 注入必须真的改到文件 → 产物里必须真的出现 ASan 符号。
+
+### 12.4 ⚠️ 元教训：**四次实验都测错了包**
+
+在摸清上面这些之前，调试过程走了很大弯路，根因是一个低级但隐蔽的错误：
+
+> 我一直在改 **`src/moon.pkg`**，却用 **`moon test --target native selftest`** 验证。
+> 而 `selftest` 包的 stub 是 `smoke_stub.cpp`，用的是 **`selftest/moon.pkg`** 的配置。
+> **`src/moon.pkg` 的 `stub-cc-flags` 根本没参与那次构建。**
+
+由此产生的**错误结论**（当时都记了下来，后来又推翻）：
+
+| 当时的"发现" | 真相 |
+|---|---|
+| "`/fsanitize=address` 没生效" | 它根本没被传进那次构建 |
+| "`stub-cc-flags` 是空操作" | 它对**本包**生效，只是我改的不是那个包 |
+| "往 stub-cc-flags 塞一个不存在的 flag 也不报错" | 同上 |
+
+**教训**：moon 是**按包**配置的。改 `A/moon.pkg` 却跑 `moon test B`，
+不会报错、只会安静地按 B 的配置构建 —— 于是你得出关于 A 的错误结论。
+
+**验证配置类改动时，务必确认"改的包"与"跑的包"是同一个。**
+最快的自检：故意写一个非法值，看它是否真的报错。

@@ -29,3 +29,14 @@ build/
 *.a
 *.obj
 *.o
+
+# MSVC 的调试/中间产物
+# 实测：跑 ASan（/fsanitize=address）或直接调 cl 时，cl 会在**当前目录**
+# 落下 vc140.pdb 这类文件。
+*.pdb
+*.ilk
+*.exp
+
+# 临时输出（脚本调试用）
+_asan-run.txt
+_*.txt

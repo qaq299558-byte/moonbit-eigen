@@ -28,7 +28,7 @@ match a.solve(b) {
 | **FFI 机制全链路**：`.cpp` 作 native-stub、外部对象 + finalizer、`#borrow` 传参、错误哨兵约定、UTF-8 编码往返 | ✅ `moon test --target native selftest` — **7/7 通过** |
 | **Eigen 绑定本体**（矩阵运算与错误路径） | ✅ `moon test --target native src` — **18/18 通过** |
 | 三个可运行示例 | ✅ 均 exit 0：解方程得 `x = [0.8, 1.4]`；线性回归精确复原截距 1 / 斜率 2；与纯 MoonBit 实现对拍**最大误差 0** |
-| ASan / UBSan | ⏳ 待接入 |
+| **ASan（AddressSanitizer）** | ✅ **已接入并实测通过**（Windows/MSVC）：18/18 测试在 ASan 生效下通过，且校验过产物确实引用 `clang_rt.asan`（防假绿）。配方、`0xc0000135` 这个坑与三道断言见 [docs/PITFALLS.md](docs/PITFALLS.md) 第 12 节 |
 
 工具链与环境（本机实测）：
 
@@ -86,6 +86,41 @@ Eigen 是 C++ 世界里经过十几年验证的 header-only 线性代数库：
 生命周期桥接）。错误处理、维度检查、格式化、示例、测试全部在 MoonBit 侧 ——
 这既符合官方验收"以 MoonBit 作为项目主要实现语言"的要求，
 也让这个绑定真正是"MoonBit 的库"而不是"Eigen 的转写"。
+
+### 实现代码构成（可自行复现）
+
+| 语言 | 文件 | 行数 | 占实现代码 |
+|---|---|---|---|
+| **MoonBit（`.mbt`）** | 9 | **1228** | **64%** |
+| C++（`.cpp` / `.hpp`） | 3 | 715 | 36% |
+
+C++ 那 715 行里，大头是"把 Eigen 模板实例化掉 + 逐元素搬运 + 错误哨兵"，
+它**不包含任何数值算法** —— 算法全在 Eigen 里。
+
+> GitHub 页面顶部的语言彩条按**字节**统计，会把构建脚本（PowerShell / Shell）
+> 和注释也算进去，且中文注释在 UTF-8 下每字符占 3 字节，因此那根彩条
+> （MoonBit 约 37%、C++ 约 30%）**低于** MoonBit 在实际实现代码中的占比。
+> 上面这张表按**实现代码行数**统计，更能反映"谁是这个项目的主要实现语言"。
+
+复现方式（排除第三方依赖与构建产物）：
+
+```powershell
+# Windows PowerShell
+Get-ChildItem -Recurse -Include *.mbt,*.cpp,*.hpp -File |
+  Where-Object { $_.FullName -notmatch 'third_party|_build' } |
+  Group-Object Extension |
+  ForEach-Object { "{0,-6} {1,5} 行" -f $_.Name, (($_.Group | Get-Content | Measure-Object).Count) }
+```
+
+```bash
+# Linux / macOS
+for e in mbt cpp hpp; do
+  printf '%-6s %5s 行\n' ".$e" \
+    "$(find . -name "*.$e" -not -path '*/third_party/*' -not -path '*/_build/*' -exec cat {} + | wc -l)"
+done
+```
+
+未计入：`scripts/`（构建工具）、`docs/`（文档）、`.github/`（CI 配置）。
 
 ---
 
@@ -234,7 +269,7 @@ moon test --target native src
 |---|---|
 | ① 以 MoonBit 作为主要实现语言 | C++ 侧只做 MoonBit 无法完成的事（模板实例化 / ABI 归一化 / 生命周期桥接）；错误处理、维度检查、格式化输出、示例、测试全部在 MoonBit 侧。理由与取舍见 [docs/DESIGN.md](docs/DESIGN.md) §2 |
 | ② 仓库公开、连续可追踪的提交 | 每日有意义提交，规范见 [TEAM.md](TEAM.md)；关键决策逐条记入 [docs/DECISIONS.md](docs/DECISIONS.md) |
-| ③ README + 可运行示例 + 必要测试 | 本文件 + `examples/solve` + `src/eigen_wbtest.mbt`（17 个测试，含 5 个错误路径）+ ASan/UBSan（[scripts/run-asan.sh](scripts/run-asan.sh)） |
+| ③ README + 可运行示例 + 必要测试 | 本文件 + `examples/solve` + 共 25 个测试（`src` 18 个含错误路径 + `selftest` 7 个）+ ASan（Windows 用 [scripts/run-asan.ps1](scripts/run-asan.ps1)，Linux 用 [scripts/run-asan.sh](scripts/run-asan.sh)） |
 | ④ 本期完成的实质新增工作 | 全部代码为本期新增，见 `git log` |
 | ⑤ 开源许可证 + 说明来源 | MIT + 上方「来源与许可」一节（含 Eigen 的 MPL2） |
 | ⑥ AI 可用，但目标/路径/质量由参赛者掌握 | 每条设计决策都在 [docs/DECISIONS.md](docs/DECISIONS.md) 里记录了理由与出处。**参赛者需在提交前通读全部实现并确认自己掌握它** |
@@ -246,7 +281,7 @@ moon test --target native src
 
 - [x] 选题论证（对比 CLI11 / toml++ / Eigen，见 PITFALLS §0）
 - [x] 接口契约 + 类型映射表 + 仓库骨架
-- [ ] **W1**：工具链穿刺 —— `.cpp` 能否作为 native-stub + ASan 接线
+- [x] **W1**：工具链穿刺 —— `.cpp` 能否作为 native-stub + ASan 接线
 - [ ] **W2**：胶水层与 MoonBit API 打通并配齐单元测试
 - [ ] **W3**：示例、性能对比、文档完善
 - [ ] **W4**：演示脚本、验收材料
