@@ -73,7 +73,13 @@ pub fn Matrix::from_array(
       "数据长度 \{data.length()} 与 rows*cols = \{rows * cols} 不匹配",
     )
   }
-  let fixed = FixedArray::from_array(data)
+  // 手工搬运，而不是用 FixedArray::from_array：
+  // 后者的名称与签名未经确认，而下面的写法只用 FixedArray::make + 下标赋值
+  // （前者出自官方 C-FFI 黑板报文章，后者是语言基础）。同类取舍见 DECISIONS D8。
+  let fixed = FixedArray::make(data.length(), 0.0)
+  for i = 0; i < data.length(); i = i + 1 {
+    fixed[i] = data[i]
+  }
   wrap(mb_eigen_matrix_from_array(rows, cols, fixed, fixed.length()))
 }
 
@@ -118,7 +124,12 @@ pub fn Matrix::to_array(self : Matrix) -> Result[Array[Double], String] {
   if mb_eigen_matrix_copy_to(self.handle, out, n) != 0 {
     return Err(last_error())
   }
-  Ok(Array::from_fixed_array(out))
+  // 同样手工搬运，避免依赖 Array::from_fixed_array。
+  let mut result : Array[Double] = []
+  for i = 0; i < n; i = i + 1 {
+    result.push(out[i])
+  }
+  Ok(result)
 }
 
 // ---------------------------------------------------------------------------
