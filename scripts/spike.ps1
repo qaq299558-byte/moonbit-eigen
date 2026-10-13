@@ -116,7 +116,8 @@ if (Test-Path -LiteralPath (Join-Path $root 'src\third_party\eigen\Eigen\Dense')
 # ── Step 5：完整测试（含 Eigen）───────────────────────────────────────────────
 Section "Step 5/6 moon test --target native（完整测试，含 Eigen 绑定）"
 if (Test-Path -LiteralPath (Join-Path $root 'src\third_party\eigen\Eigen\Dense')) {
-  & $moon test --target native
+& $moon test --target native selftest
+& $moon test --target native src
   if ($LASTEXITCODE -ne 0) {
     Fail "完整测试未通过"
     $verdict += "Step 5 失败：Eigen 绑定的编译或测试有问题"

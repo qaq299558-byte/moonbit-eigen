@@ -249,7 +249,7 @@ if (-not $ok) {
 Write-Host ""
 if ($ok) {
   Write-Host "完成。Eigen 已就位：$target" -ForegroundColor Green
-  Write-Host "下一步：  moon test --target native"
+  Write-Host "下一步：  moon test --target native src"
   exit 0
 }
 

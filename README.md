@@ -106,7 +106,8 @@ powershell -File scripts/fetch-eigen.ps1          # Windows
 # bash scripts/fetch-eigen.sh               # Linux/macOS（W1 补齐）
 
 # 2) 先验证 C++ 胶水真的被编进来了（一行自检，见 docs/ROADMAP.md 第 1 周）
-moon test --target native
+moon test --target native selftest
+moon test --target native src
 
 # 3) 跑示例
 moon run examples/solve --target native
@@ -117,7 +118,7 @@ Windows 上如果 native 构建出现"胶水符号找不到"之类的怪现象�
 
 ```powershell
 $env:MOONBIT_NEW_NATIVE = "0"
-moon build --target native
+moon test --target native src
 ```
 
 ---

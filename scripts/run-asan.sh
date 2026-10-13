@@ -11,7 +11,8 @@
 #
 # ⚠️ 未验证：本脚本尚未实跑过。W1 的任务之一就是让它变绿。
 #    实现思路：把 -fsanitize=address,undefined 通过 cc-flags 注入构建，
-#    再跑 moon test --target native。
+#    再跑 moon test --target native selftest
+moon test --target native src。
 #    生态先例 illusory0x0/qpainter 的配置里用的正是
 #    "-fsanitize=address -fsanitize=undefined"。
 
@@ -53,6 +54,7 @@ print("已注入 sanitizer 选项")
 PY
 
 echo "=== 以 ASan/UBSan 运行测试 ==="
-moon test --target native
+moon test --target native selftest
+moon test --target native src
 
 echo "=== sanitizer 运行结束（无输出即无问题）==="

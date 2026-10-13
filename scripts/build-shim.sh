@@ -57,7 +57,7 @@ echo
 echo
 echo "完成：$OUT_DIR/eigen_shim.o"
 echo "下一步：按 docs/PLAN_B.md 把 src/moon.pkg 换成 Plan B 版本（Linux 需要 -lstdc++），然后："
-echo "  moon test --target native"
+echo "  moon test --target native src"
 echo
 echo "注意：cc-link-flags 里的相对路径按 pwd 解析（moon issue #586），"
 echo "      所以务必在模块根目录执行 moon 命令。"

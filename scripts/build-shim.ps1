@@ -73,7 +73,7 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $obj)) {
 Write-Host ""
 Write-Host "完成：$obj" -ForegroundColor Green
 Write-Host "下一步：按 docs/PLAN_B.md 把 src/moon.pkg 换成 Plan B 版本，然后跑："
-Write-Host "  moon test --target native"
+Write-Host "  moon test --target native src"
 Write-Host ""
 Write-Host "注意：cc-link-flags 里的相对路径按 pwd 解析（moon issue #586），"
 Write-Host "      所以务必在模块根目录（$root）执行 moon 命令。"

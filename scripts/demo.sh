@@ -46,7 +46,8 @@ step 3 "类型检查"
 run moon check --target native
 
 step 4 "运行测试"
-run moon test --target native
+run moon test --target native selftest
+run moon test --target native src
 
 step 5 "运行示例：解线性方程组"
 run moon run examples/solve --target native

@@ -26,12 +26,23 @@ function Step($n, $text) {
 
 function Run($cmd) {
   Write-Host "    $ $cmd" -ForegroundColor DarkGray
+
+  # ⚠️ PowerShell 5.1 的坑：把原生命令的 stderr 用 2>&1 接进管道会产生
+  # NativeCommandError；脚本开头设了 $ErrorActionPreference = 'Stop'，
+  # 于是那条 stderr 会变成**终止性错误**，脚本直接崩在"判读退出码"之前。
+  # 实测：moon check 会把一条 warning 写到 stderr，正好触发这个坑。
+  # 因此这里临时切回 Continue，并以 $LASTEXITCODE 作为唯一成功判据。
+  $saved = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
   $output = Invoke-Expression $cmd 2>&1
+  $code = $LASTEXITCODE
+  $ErrorActionPreference = $saved
+
   $output | ForEach-Object { Write-Host "    $_" }
   $output | Out-File -FilePath $logFile -Append -Encoding utf8
-  if ($LASTEXITCODE -ne 0) {
+  if ($code -ne 0) {
     Write-Host ""
-    Write-Host "演示中止：上一条命令失败（exit $LASTEXITCODE）" -ForegroundColor Red
+    Write-Host "演示中止：上一条命令失败（exit $code）" -ForegroundColor Red
     Write-Host "日志：$logFile"
     exit 1
   }
@@ -61,7 +72,8 @@ Step 3 "类型检查"
 Run "& '$moon' check --target native"
 
 Step 4 "运行测试"
-Run "& '$moon' test --target native"
+Run "& '' test --target native selftest"
+Run "& '' test --target native src"
 
 Step 5 "运行示例：解线性方程组"
 Run "& '$moon' run examples/solve --target native"

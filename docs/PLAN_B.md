@@ -18,7 +18,7 @@
 
 ```powershell
 $env:MOONBIT_NEW_NATIVE = "0"     # 强制 C 后端（新 native 后端可能不支持 stub）
-moon test --target native
+moon test --target native src
 ```
 
 ---
@@ -60,7 +60,7 @@ moon test --target native
 cd D:\moonbit\moonbit-eigen
 powershell -File scripts/build-shim.ps1      # 产出 build/eigen_shim.obj
 # 然后按第 4 节替换 src/moon.pkg
-moon test --target native
+moon test --target native src
 ```
 
 ### Linux / macOS（g++ 或 clang++）
@@ -69,7 +69,7 @@ moon test --target native
 cd moonbit-eigen
 bash scripts/build-shim.sh             # 产出 build/eigen_shim.o
 # 然后按第 4 节替换 src/moon.pkg
-moon test --target native
+moon test --target native src
 ```
 
 ---
