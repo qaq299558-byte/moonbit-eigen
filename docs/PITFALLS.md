@@ -222,19 +222,54 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码 —— 这是官方 agent skill 推�
 
 按优先级排列：
 
-- [ ] `.cpp` 能否作为 `native-stub` 被接受（**决定 Plan A/B**）
-- [ ] `moonbit.h` 里 `moonbit_make_bytes` 的确切签名
-- [ ] `MOONBIT_FFI_EXPORT` 在本机版本中的定义与位置要求
-- [ ] `#borrow` 用于 `FixedArray[Double]` 参数是否生效、有无崩溃
-- [ ] Eigen 相对包含路径是否可行（否则改用绝对 `-I`）
+- [ ] `.cpp` 能否作为 `native-stub` 被接受（**决定 Plan A/B**）—— 仍需 C++ 工具链
+- [x] ~~`moonbit.h` 里 `moonbit_make_bytes` 的确切签名~~ → 本机头文件确认：
+      `moonbit_bytes_t moonbit_make_bytes(int32_t size, int value)`
+- [x] ~~`MOONBIT_FFI_EXPORT` 的定义~~ → `__declspec(dllexport)`（Windows）/ 空（其他平台）
+- [x] ~~`moonbit_make_external_object` 的签名~~ → 本机头文件确认
+      `void *moonbit_make_external_object(void (*finalize)(void *self), uint32_t payload_size)`；
+      注释明确 "finalize MUST NOT drop the container itself"
+- [x] ~~`Moonbit_array_length` / `moonbit_incref` / `moonbit_decref`~~ → 均存在于本机头文件
+- [ ] `#borrow` 用于 `FixedArray[Double]` 参数是否生效、有无崩溃 —— 需运行期验证
+- [ ] Eigen 相对包含路径是否可行 —— 需实际编译
 - [ ] `moon test` 与 `moon run` 在 `cc-link-flags` 为空时是否都正常（issue #637）
-- [ ] clang-cl 是否需要显式链接 C++ 运行时（当前留空）
-- [ ] `@utf8.decode_lossy` 的确切包路径与函数名
-- [ ] `FixedArray::make(len, init)` 的签名（出自官方 C-FFI 黑板报文章，尚未本机确认）
-- [ ] `Array::length()` 与 `String::contains` 是否存在、签名如何
-- [ ] `_wbtest.mbt` 与 `_test.mbt` 的实际可见性差异（见 DECISIONS D9，依据官方文档）
-- [ ] 若将来要加 BlackBox 测试，当前包的别名是否为 `@src`
-- [ ] `Result[T, String]` 作为公开 API 返回类型时的 `match` 写法（本文件按 `Ok(v) => ...` 写）
+- [ ] 是否需要显式链接 C++ 运行时（当前留空）
+- [x] ~~`@utf8.decode_lossy` 的确切包路径与函数名~~ → 已确认：`BytesView` 入参，已修正调用
+- [x] ~~`FixedArray::make(len, init)` 的签名~~ → 已确认（官方 core 内部即如此使用）
+- [x] ~~`Array::length()`~~ → 已确认；`String::contains` / `String::length` 仍未确认，
+      测试已改为依赖已确认的 `Eq for String` 做断言
+- [x] ~~`_wbtest.mbt` 与 `_test.mbt` 的实际可见性差异~~ → 官方文档已明确（见 DECISIONS D9）
+- [ ] 若将来要加 BlackBox 测试，当前包的别名是否为 `@src`（v2 项，非阻塞）
+- [x] ~~`Result[T, String]` 的 `match` 写法~~ → 官方 core 内大量使用，已确认
+
+**本轮通过读取 core 的接口清单（`pkg.generated.mbti`）与源码而确认的 API**：
+
+- ✅ `FixedArray::make(len, init)` —— 官方 core 内部正是这样用的
+  （`let array = FixedArray::make(length, value(0))`）。
+- ✅ `Array::length` / `Array::push` / `Array::from_fixed_array` 均存在。
+- ✅ `pub impl Eq for String`、`pub impl Add for String` —— 所以字符串可用
+  `==` / `!=` 比较、用 `+` 拼接。
+- ⚠️ **`FixedArray::from_array` 收的是 `ArrayView[T]` 而不是 `Array[T]`**
+  （`pub fn[T] FixedArray::from_array(array : ArrayView[T]) -> FixedArray[T]`）——
+  我最初那版写法会失败，上一轮换成手写循环是对的。
+- ⚠️ **`@utf8.decode_lossy` 收的是 `BytesView` 而不是 `Bytes`**
+  （`pub fn decode_lossy(BytesView, ignore_bom? : Bool) -> String`）——
+  已改为 `mb_eigen_last_error()[:]` 显式取视图。
+- ❓ `String::contains` / `String::length` **未能在清单中确认**（builtin 的
+  `.mbti` 有 74KB，抓取在 100KB 处被截断）。因此测试改用 `Eq for String`
+  做断言，避免依赖这两个符号。
+
+**本轮通过核实官方源码而确认的语法**（证据：`moonbitlang/core` 的 `double/moon.pkg`
+与 `json/moon.pkg`，经 base64 解码读取原文）：
+
+- ✅ **包导入路径 = `<模块名>/<包目录>`**。core 里写作 `"moonbitlang/core/double"`
+  （模块名 `moonbitlang/core`），因此本项目的 `"moonbit-eigen/src"` 写法正确。
+- ✅ **`builtin` 需要显式 import**。连 core 自己的包都写 `"moonbitlang/core/builtin"`，
+  否则触发 `core_package_not_imported` 警告（警告 id 71）。已补进 `src/moon.pkg` 与三个示例。
+- ✅ **别名语法** `"path" @alias`、**测试专用导入** `} for "test"` / `} for "wbtest"`
+  的写法均与官方一致（本项目暂未用到后两者）。
+- ✅ `_test.mbt`(BlackBox) / `_wbtest.mbt`(WhiteBox) 的可见性差异有官方文档明确说明
+  （见 DECISIONS D9），不再是"待验证"。
 
 **已在本轮通过改用基础语法而消除的不确定符号**（见 DECISIONS D8）：
 
@@ -248,3 +283,71 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码 —— 这是官方 agent skill 推�
 `String` 拼接与 `\{expr}` 插值、`Result` / `Ok` / `Err` / `match`、
 `abort`、`test` 块、`@utf8.decode_lossy`。
 - [ ] 是否需要在 CI（Linux/gcc）上加 `-lstdc++`
+
+**✅ 已由 `moon check` 验证**（moonc v0.10.15）：
+
+- 全部 MoonBit 代码通过类型检查 —— API 层、FFI 声明、17 个测试、3 个示例。
+  命令：`moon check --target native`（在模块根目录执行，输出 `0 errors`）。
+
+---
+
+## 9. 本机环境诊断（2026-10-13 实测）
+
+用 `moon check` 把此前"凭推理写下的代码"过了一遍，结果推翻了若干假设。
+完整的 4 处真问题记录在 [DECISIONS.md](DECISIONS.md) D13，这里只留可操作的部分。
+
+### 9.1 环境现状
+
+| 组件 | 状态 |
+|---|---|
+| MoonBit 工具链 | ✅ 已装（`moon 0.1.20261012` / `moonc v0.10.15`），位于 `%USERPROFILE%\.moon\bin` |
+| `.moon\bin` 在 PATH 中 | ❌ 否 —— 需用完整路径，或把它加进 PATH |
+| `moonbit.h` | ✅ `%USERPROFILE%\.moon\include\moonbit.h`（9955 字节） |
+| **C++ 工具链** | ❌ **缺**。装了 VS Build Tools 18，但**没有 C++ 工作负载**（找不到 `cl.exe`；`vswhere -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64` 返回空） |
+| LLVM / clang-cl | ❌ 未安装 |
+| MinGW g++ | ✅ 有，但 **MoonBit 官方明确不支持**，用不了 |
+| Eigen | ❌ 未获取（需 `pwsh -File scripts/fetch-eigen.ps1`） |
+
+缺 C++ 工具链时 moon 的报错（可作判断依据）：
+
+```
+Windows native backend requires MSVC Build Tools with C++ tools and Windows SDK
+```
+
+### 9.2 三条"只有编译器能告诉你"的规则
+
+1. **`moon.mod.json` 已不再被支持**，必须用 `moon.mod`（`moon fmt` 可自动迁移）。
+   本机版本带 `rr_moon_mod` 特性开关。
+2. **extern 的指针参数必须标注 `#borrow` / `#owned`**，否则是 **error 55**（错误，非警告）。
+   默认约定目前是 `#owned`，即**被调用方必须 decref 自己的参数** ——
+   我们的 shim 不做 decref，所以必须标 `#borrow`，否则对象永不回收、finalizer 不触发。
+3. **`moon.mod` 里的 `source = "src"` 会把该目录之外的包静默排除**：
+   `examples/` 下的包不报错、也不被检查。移除该字段后示例才被纳入。
+
+### 9.3 一条方法论教训
+
+> **"检查通过"不等于"被检查过"。**
+
+`source = "src"` 就是典型：`moon check` 一直返回绿色，
+但三个示例包**从未被检查**。发现方式是往示例里**故意注入一个类型错误**，
+看检查是否报错 —— 不报，就说明覆盖范围有问题。
+
+**验证覆盖范围本身，也需要被验证。**
+
+### 9.4 ⚠️ 更正：`moonbit_make_string` 确实存在
+
+前面几版文档写过"`moonbit_make_string` 在官方文档/skill/issue 中查不到出处、
+不要使用"。**这个结论是错的** —— 本机 `moonbit.h` 第 185 行明确声明：
+
+```c
+MOONBIT_EXPORT moonbit_string_t moonbit_make_string(int32_t size, uint16_t value);
+MOONBIT_EXPORT moonbit_string_t moonbit_make_string_raw(int32_t size);
+```
+
+教训：**"我在公开资料里没搜到" ≠ "它不存在"。**
+判断一个 C 侧运行时 API 是否存在，最权威的地方是**本机的
+`$MOON_HOME/include/moonbit.h`**，而不是搜索结果。
+
+**实现不需要改**：仍用 `moonbit_make_bytes` + MoonBit 侧 `@utf8.decode_lossy`，
+因为这是官方 agent skill 推荐的做法（且避免 C++ 侧处理 UTF-16）。
+但**理由要改**：不是"那个 API 不存在"，而是"这条路径更符合官方推荐、也更省事"。

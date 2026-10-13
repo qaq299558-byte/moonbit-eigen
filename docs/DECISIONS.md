@@ -173,3 +173,135 @@ v2 应补一个 `eigen_test.mbt`，用包别名（预计是 `@src`）调用公�
 
 **结论**：Plan B 是"保证 10/31 交得出东西"的兜底，不是终态；
 如果最终走 Plan B，必须在 README 的 Limitations 里写明单平台限制。
+
+---
+
+## D11 · 2026-10-13 · 补上 `builtin` 的显式 import
+
+**决策**：在 `src/moon.pkg` 与三个示例的 `moon.pkg` 中显式加入
+`"moonbitlang/core/builtin"`。
+
+**依据**：直接读取官方 `moonbitlang/core` 仓库里的配置文件原文（经 GitHub API
+取回并 base64 解码），发现**连 core 自己的包都显式 import builtin**：
+
+```moonbit
+// moonbitlang/core 的 double/moon.pkg 原文
+import {
+  "moonbitlang/core/builtin",
+}
+```
+
+**同一次核实还确认了两件事**：
+
+1. **包导入路径的格式是 `<模块名>/<包目录>`**。core 里写作 `"moonbitlang/core/double"`
+   （其模块名就是 `moonbitlang/core`），因此本项目示例里的 `"moonbit-eigen/src"` 写法正确
+   —— 这一条此前属于"猜测"，现已消除。
+2. 测试专用导入的写法是 `} for "test"` / `} for "wbtest"`，别名写作 `"path" @alias`
+   （core 里甚至有 `@internal/strconv` 这种带斜杠的别名）。
+
+**为什么值得记一条**：这类"配置文件的语法细节"编译器报错信息往往不直观，
+而**读官方仓库自己的配置文件**比读文档更快得到确定答案。
+这也是本轮把"未验证假设"从 6 条压到 3 条的又一次同类操作。
+
+---
+
+## D12 · 2026-10-13 · 用 core 的 `pkg.generated.mbti` 作为 API 事实来源
+
+**决策**：把 `moonbitlang/core` 各包的 `pkg.generated.mbti`（由 `moon info` 生成的
+公开接口清单）当作校验标准库 API 的**首选事实来源**，而不是文档或教程。
+
+**理由**：本轮靠它纠正了两个会直接导致编译失败的错误：
+
+| 我原先写的 | 实际签名 | 后果 |
+|---|---|---|
+| `@utf8.decode_lossy(bytes)` | `decode_lossy(BytesView, ignore_bom? : Bool)` | 类型不匹配 |
+| `FixedArray::from_array(array)` | `from_array(array : ArrayView[T])` | 类型不匹配 |
+
+同时它确认了 `FixedArray::make(len, init)`、`Array::length`、`Array::push`、
+`impl Eq for String`、`impl Add for String` 等一批符号**确实存在**。
+
+**做法**：`web_fetch` 取 GitHub contents API（返回 base64 的 JSON），
+用 pwsh 解码后**在本地检索**——这样即使接口清单有 74KB 也不会消耗上下文。
+
+**仍未确认的一项**：`String::contains` / `String::length`。
+builtin 的清单在抓取时被截断（100KB 上限），因此测试里改用
+已确认的 `Eq for String`（`==` / `!=` 与空串比较）来替代，不依赖这两个符号。
+
+**这条决策的普适价值**：`.mbti` 是**机器生成的**，所以它不会像文档那样滞后于实现。
+以后写任何 MoonBit 代码，遇到不确定的 API，第一反应应当是找对应包的 `.mbti`。
+
+---
+
+## D13 · 2026-10-13 · 首次跑通 `moon check`：改了 4 处真问题
+
+**背景**：本机其实已装好 MoonBit（`moon 0.1.20261012` / `moonc v0.10.15`），
+只是没进 PATH。缺的只有 C++ 工具链。既然编译器可用，就用它把此前所有
+"凭推理写下的代码"过了一遍 —— **结果证明推理确实不可靠**。
+
+### 4 处真实问题（全部由编译器发现，无一是靠读文档能发现的）
+
+**1. `moon.mod.json` 已不再被支持**
+
+```
+`moon.mod.json` at 'D:\moonbit\moonbit-eigen' is no longer supported.
+Run `moon fmt` to migrate to `moon.mod`.
+```
+
+这个版本带 `rr_moon_mod` 特性开关，模块配置必须用新的 `moon.mod`。
+按提示 `moon fmt` 迁移即可。**教训**：配置文件格式的演进比文档快。
+
+**2. extern 指针参数必须标注 `#borrow` / `#owned`（error 55，是错误不是警告）**
+
+```
+FFI parameter of pointer type should be annotated with either #borrow or #owned,
+the default calling convention is currently #owned and it will be changed in the future.
+```
+
+**这是一处真实的、我推理错了的内存管理 bug**：我原来的 shim 接收句柄后不做
+`moonbit_decref`，而这在 owned 约定下是必须的 —— 不处理，每个矩阵对象都会泄漏
+（引用计数永不归零，finalizer 永不触发）。
+
+现在全部标成 `#borrow`，因为 shim 确实只在调用期间读写、不保存指针。
+这条标注与 `src/eigen_shim.cpp` 的实际行为是**互相印证**的：
+如果哪天 shim 开始保存指针，就必须改成 `#owned` 并补上 decref。
+
+**3. `Array::push` 改内容不需要 `let mut`（error 15）**
+
+`let mut out : Array[Double] = []` 后 `out.push(x)` → 报 `unused_mut`。
+因为 `Array::push(Self[T], T)` 接收 `self`，通过方法改内容不涉及绑定的可变性。
+（但 `let mut s = "..."` 后 `s = s + ...` 这种**重新赋值**仍然需要 `mut`。）
+
+**4. `moon.mod` 里的 `source = "src"` 会把 `examples/` 静默排除在模块之外**
+
+这是最隐蔽的一条：**示例包不报错、只是不被检查**。
+验证方式是往示例里注入一个类型错误，然后看 `moon check` 是否报 —— 结果**不报**。
+移除 `source = "src"` 后示例立刻被纳入，并当场暴露出第 3 条的同类错误。
+
+**教训**：一个"检查通过"的绿色结果，也可能是"根本没检查"。
+**验证覆盖范围本身也需要被验证。**
+
+### 另外两条操作层面的经验
+
+- **`moon check` 确实检查测试文件**（`_wbtest.mbt`）——用注入错误的方式确认过。
+  但只覆盖**属于本模块的包**；若要显式指定，用 `moon check --target native <包路径>`。
+- **`moon check --target wasm-gc` 不能用来绕开 C 编译器做类型检查**：
+  wasm-gc 后端直接报 `extern "C" is unsupported in wasm-gc backend`（error 4156）。
+- 方法声明为 `fn Type::name(self, ...)` 时，调用必须写成 `self.name(...)` 或
+  `Type::name(...)`；裸写 `name(...)` 会报 `unbound`（error 4021）。
+
+### 当前状态
+
+```
+$ moon check --target native
+Finished. moon: ran 3 tasks, now up to date (1 warnings, 0 errors)
+```
+
+**全部 MoonBit 代码已通过类型检查**（API 层 + FFI 声明 + 17 个测试 + 3 个示例）。
+剩余未验证的**只有 C++ 侧**，而它卡在一件明确的事上：
+本机装了 VS Build Tools 18，但**没有 C++ 工作负载**
+（`vswhere -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64` 返回空，
+全盘找不到 `cl.exe`）。moon 的报错也正是这句：
+
+```
+Windows native backend requires MSVC Build Tools with C++ tools and Windows SDK
+```

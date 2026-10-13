@@ -9,6 +9,8 @@
 //     这是跨语言绑定最容易出错、也最难靠单元测试发现的地方。
 
 import {
+  // core 的普通包需要显式 import（见 src/moon.pkg 的说明）
+  "moonbitlang/core/builtin",
   "moonbit-eigen/src" @eigen,
 }
 

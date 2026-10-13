@@ -1,4 +1,6 @@
 # MoonBit 构建产物
+# 注意：新版 moon 用 `_build/`，旧版用 `target/`，两个都排除
+_build/
 target/
 .mooncakes/
 *.mbti

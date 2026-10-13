@@ -20,7 +20,9 @@ fn matmul_ref(
   k : Int,
   n : Int,
 ) -> Array[Double] {
-  let mut out : Array[Double] = []
+  // 不加 mut：Array::push 接收 self，通过方法改内容不需要绑定可变
+  // （moonc 会报 error 15 unused_mut）。
+  let out : Array[Double] = []
   for i = 0; i < m; i = i + 1 {
     for j = 0; j < n; j = j + 1 {
       let mut acc = 0.0
