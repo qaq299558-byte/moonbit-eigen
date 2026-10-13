@@ -1,12 +1,24 @@
 # .github/workflows/ci.yml —— 持续集成
 #
-# 策略（单人项目的省时选择）：
-#   · CI 只跑 ubuntu-latest。Windows 上必须用 MSVC 兼容工具链
-#     （cl.exe / clang-cl.exe，MinGW 被官方排除），在 CI 里配它成本高、
-#     收益低；Windows 的构建说明写进 README，靠本地验证 + 录屏留证。
-#   · Linux 上用 gcc，因此 cc-link-flags 需要 -lstdc++（见 docs/PITFALLS.md）。
+# ── 为什么是「Windows 跑完整测试 + Linux 只做类型检查」？──────────────────
 #
-# ⚠️ 未验证：本文件尚未实际跑过。W1 的首要任务之一就是让第一个 CI run 变绿。
+# MoonBit 的 native 后端在 Windows 上**要求 MSVC 兼容工具链**（官方明确排除 MinGW），
+# 而本项目的 C++ 胶水需要 MSVC 专用的编译选项（/EHsc、/utf-8）。
+# 这些选项在 Linux 的 GCC 上完全不被识别；反过来 GCC 需要的 -lstdc++
+# 在 MSVC 上也没有对应物。
+#
+# 早期的 ci.yml 把完整测试放在 ubuntu-latest 上，结果 CI 一路红 ——
+# 那不是代码问题，是**环境不匹配**：拿 Linux 的工具链去编 MSVC 选项。
+#
+# 现在的分工：
+#   · native-test (windows) —— 完整验证：moon check + selftest + 完整测试 + 跑示例。
+#       GitHub 的 windows runner 自带安装了 C++ 工作负载的 Visual Studio，
+#       moon 会用 find-msvc-tools 自动发现它（因此本仓库的 moon.pkg 不硬编码 cc）。
+#   · typecheck-linux       —— 只跑 moon check：不需要 C 编译器，
+#       验证纯 MoonBit 部分在非 Windows 平台也能通过检查
+#       （这也正是把 FFI 声明单独放 ffi.mbt 并用 targets 门控的收益）。
+#
+# ⚠️ 本文件尚未实跑验证。第一次跑之后请把结果回填到 docs/PITFALLS.md。
 
 name: CI
 
@@ -17,12 +29,63 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  # ── 完整验证：Windows + MSVC ────────────────────────────────────────────────
+  native-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        shell: pwsh
+        run: |
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: Verify toolchain
+        shell: pwsh
+        run: moon version --all
+
+      - name: Verify MSVC is discoverable
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          & $vswhere -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+
+      # Eigen 不入库，按固定版本获取（与本地脚本一致，含多镜像重试）
+      - name: Fetch Eigen
+        shell: pwsh
+        run: ./scripts/fetch-eigen.ps1
+
+      # 不需要 C++ 工具链，先单独跑，失败时更容易定位
+      - name: Type check
+        shell: pwsh
+        run: moon check --target native
+
+      # ★ 关键一步：验证 FFI 机制本身（.cpp 能否作 native-stub、
+      #   外部对象 finalizer、#borrow、错误哨兵、UTF-8 编码往返）。
+      #   零第三方依赖，即使 Eigen 出问题也能给出独立结论。
+      - name: FFI mechanism selftest
+        shell: pwsh
+        run: moon test --target native selftest
+
+      # 完整测试（含 Eigen 绑定）
+      - name: Full native tests
+        shell: pwsh
+        run: moon test --target native
+
+      - name: Run examples
+        shell: pwsh
+        run: |
+          moon run examples/solve --target native
+          moon run examples/linreg --target native
+          moon run examples/crosscheck --target native
+
+  # ── 跨平台类型检查：Linux（不需要 C 编译器）────────────────────────────────
+  typecheck-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # 官方 CI 使用的安装方式（Windows 用 powershell.ps1，Linux 用 unix.sh）
       - name: Install MoonBit
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
@@ -31,31 +94,6 @@ jobs:
       - name: Verify toolchain
         run: moon version --all
 
-      # Eigen 不入库，按固定版本获取（与本地脚本保持一致）
-      - name: Fetch Eigen
-        run: |
-          chmod +x scripts/fetch-eigen.sh
-          bash scripts/fetch-eigen.sh
-
-      - name: Check
+      # 只做类型检查：moon check 不生成目标文件，因此不需要 C/C++ 工具链。
+      - name: Type check (no C toolchain needed)
         run: moon check --target native
-
-      - name: Test
-        run: moon test --target native
-
-  # 官方 agent skill 建议把 ASan/UBSan 作为第 1 周交付物而非最后一步：
-  # 所有权类 bug 大多"运行时才炸、且不炸在出错点"。
-  # W1 需把下面的步骤改成实际可用的形式（用 scripts/run-asan.sh）。
-  asan:
-    runs-on: ubuntu-latest
-    if: false   # 待 W1 补齐 scripts/run-asan.sh 后启用
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install MoonBit
-        run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
-          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
-      - name: Fetch Eigen
-        run: bash scripts/fetch-eigen.sh
-      - name: Run with ASan/UBSan
-        run: bash scripts/run-asan.sh

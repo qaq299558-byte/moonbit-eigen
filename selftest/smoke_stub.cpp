@@ -11,14 +11,19 @@
 //   5. moonbit_make_bytes + MoonBit 侧 @utf8.decode_lossy 做字符串往返
 //   6. 所有 C++ 异常都挡在 ABI 边界内
 
-#include <moonbit.h>
-
+// ── 包含顺序：标准库在前，moonbit.h 在后 ─────────────────────────────────
+// 原因：moonbit.h 是 C 运行时头，可能与标准库在 memcpy 等符号的声明上撞车。
+// 先让标准库把符号声明完，再引入 moonbit.h，可以避免这类冲突。
+// （这条是 GitHub Copilot 在尝试修 Linux CI 时报告的现象，属于合理的头文件卫生，
+//   在 MSVC 上同样安全。）
 #include <cstdint>
 #include <cstring>
 #include <exception>
 #include <new>
 #include <string>
 #include <vector>
+
+#include <moonbit.h>
 
 #ifndef MOONBIT_FFI_EXPORT
 #define MOONBIT_FFI_EXPORT
