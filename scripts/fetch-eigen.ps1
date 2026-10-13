@@ -1,4 +1,4 @@
-# scripts/fetch-eigen.ps1 —— 按固定版本获取 Eigen（Windows）
+﻿# scripts/fetch-eigen.ps1 —— 按固定版本获取 Eigen（Windows）
 #
 # 为什么用脚本而不是直接入库？
 #   · Eigen 是 header-only 的目录树（数百个文件），入库会让仓库体积与审查负担陡增；

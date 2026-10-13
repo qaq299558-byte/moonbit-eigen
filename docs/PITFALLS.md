@@ -401,3 +401,47 @@ MOONBIT_EXPORT moonbit_string_t moonbit_make_string_raw(int32_t size);
 **实现不需要改**：仍用 `moonbit_make_bytes` + MoonBit 侧 `@utf8.decode_lossy`，
 因为这是官方 agent skill 推荐的做法（且避免 C++ 侧处理 UTF-16）。
 但**理由要改**：不是"那个 API 不存在"，而是"这条路径更符合官方推荐、也更省事"。
+
+### 9.5 ⚠️ 带中文的 `.ps1` 必须存成 UTF-8 **带 BOM**
+
+**现象**：脚本在 PowerShell 7（`pwsh`）里正常，在 Windows PowerShell 5.1
+（`powershell.exe`）里直接解析失败：
+
+```
+所在位置 ...\fetch-eigen.ps1:26 字符: 65
++ if (Test-Path -LiteralPath (Join-Path $target "Eigen" "Dense")) {
++                                                                 ~
+语句块或类型定义中缺少右"}"。
+...
+字符串缺少终止符: "。
+```
+
+**原因**：**Windows PowerShell 5.1 读取没有 BOM 的 `.ps1` 时，按系统 ANSI 代码页
+解码**（中文 Windows 上是 GBK）。UTF-8 的中文字节被当成 GBK 解析后变成乱码，
+其中某些字节序列还会把字符串引号"吃掉"，于是引发一连串解析错误 ——
+报错位置（`line 26`、`line 72`）看起来毫无道理，因为真正的问题是编码。
+
+**复现与验证**（本机实测，用真实的 5.1 解析器）：
+
+| 文件状态 | 5.1 解析结果 |
+|---|---|
+| UTF-8 **无** BOM | ❌ 4 个解析错误，与上面完全一致 |
+| UTF-8 **带** BOM | ✅ 全部 OK |
+
+**修法**：把 `.ps1` 存成 **UTF-8 with BOM**（`EF BB BF`）。
+
+**为什么本地开发一直没发现**：开发环境的 Shell 是 PowerShell 7（`pwsh`），
+而 **PS 7 默认就按 UTF-8 读文件（不依赖 BOM）**。
+换句话说：**跨 PowerShell 版本的脚本，必须用最保守的那个版本的规则来验证。**
+
+**给本项目的具体结论**：
+
+- `.ps1` → 必须带 BOM（已全部修正）
+- `.cpp` → 不加 BOM，靠 `stub-cc-flags` 里的 `/utf-8`（已实测中文往返正确）
+- `.mbt` → **不要**加 BOM（MoonBit 编译器按 UTF-8 读，加 BOM 有风险）
+- `.md` / `.sh` → 无需处理
+
+**通用教训（本项目第三次同类型问题了）**：
+「我的环境能跑」不等于「用户的环境能跑」。
+已知的环境差异清单：Shell 版本（pwsh vs powershell）、编译器（GCC vs MSVC）、
+操作系统代码页（UTF-8 vs GBK）、网络可达性（GitHub 通 vs 不通）。

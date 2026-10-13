@@ -1,4 +1,4 @@
-# scripts/spike.ps1 —— 一键技术穿刺（Windows）
+﻿# scripts/spike.ps1 —— 一键技术穿刺（Windows）
 #
 # 目的：把 docs/ROADMAP.md 第 1 周的检查项压缩成一条命令，并对熔断点给出判定结论。
 #

@@ -1,4 +1,4 @@
-# scripts/build-shim.ps1 —— Plan B：把 C++ 胶水预编译成目标文件（Windows）
+﻿# scripts/build-shim.ps1 —— Plan B：把 C++ 胶水预编译成目标文件（Windows）
 #
 # 什么时候需要它？
 #   当 src/moon.pkg 的 "native-stub": ["eigen_shim.cpp"]（Plan A）失败时。
