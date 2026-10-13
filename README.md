@@ -128,10 +128,28 @@ done
 
 ### 前置依赖
 
-| 平台 | 要求 |
-|---|---|
-| Windows | MoonBit 工具链 + **LLVM（`clang-cl`）**。⚠️ **MinGW 不被 MoonBit native 后端支持** |
-| Linux / macOS | MoonBit 工具链 + `gcc` 或 `clang` |
+| 平台 | 要求 | 验证状态 |
+|---|---|---|
+| **Windows** | MoonBit 工具链 + **MSVC**（Visual Studio 的 C++ 工作负载，`cl.exe` 无需在 PATH 上，moon 用 `vswhere` 自动发现）。⚠️ **MinGW 不被 MoonBit native 后端支持** | ✅ **本项目的开发与验证平台** |
+| Linux / macOS | MoonBit 工具链 + `gcc`/`clang` | ⚠️ **只能通过 `moon check` 类型检查**，见下 |
+
+> **⚠️ 关于 Linux / macOS（如实说明）**
+>
+> 本项目**只在 Windows + MSVC 上做过完整的构建与运行验证**。
+> 在 Linux 上 `moon check`（纯类型检查）可以通过，但**原生构建需要先改配置**：
+>
+> `src/moon.pkg` 的 `stub-cc-flags` 里是 MSVC 专用选项
+> （`/EHsc /utf-8 /bigobj /O1`），**GCC 一个都不认**；同时 GCC 驱动不会
+> 自动链接 `libstdc++`，需要在 `cc-link-flags` 里加 `-lstdc++`。
+> 正确做法是把 `stub-cc-flags` 换成 `-std=c++17 -fexceptions` 之类，
+> 并补上 `-lstdc++`。
+>
+> `scripts/run-asan.sh` 里演示了这个替换动作。之所以不做成自动切换：
+> **`moon.pkg` 是静态配置，无法按操作系统分支**（moon 只支持按后端与
+> 优化级别设置条件），这是本项目在跨平台上的已知取舍。
+>
+> 因此本仓库的 `.sh` 脚本都标注为「未在开发机验证」——
+> 与其给你一个看起来能跑但没验证过的脚本，不如把状态说清楚。
 
 ### 构建
 
