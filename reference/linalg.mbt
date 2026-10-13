@@ -96,3 +96,120 @@ pub fn max_abs_diff(a : Array[Double], b : Array[Double]) -> Double {
 pub fn approx_equal(a : Array[Double], b : Array[Double], tol : Double) -> Bool {
   max_abs_diff(a, b) <= tol
 }
+
+// ── 解线性方程组与行列式 ─────────────────────────────────────────────────────
+//
+// solve 与 det 共用同一份消元逻辑（gauss_eliminate），刻意不写两套 ——
+// 参考实现的价值在于"显然正确"，两份各写一遍只会让它们有机会各自跑偏。
+
+///|
+/// 高斯消元（部分主元法），**就地修改** `m`（n×n 行主序）与 `rhs`（长度 n）。
+///
+/// 返回 `(是否非奇异, 行交换带来的符号)`；符号供 det 使用。
+///
+/// 选主元不是可选项：不选主元时主元为 0 会直接除零，
+/// 主元很小则误差被放大 —— 这是高斯消元最常见的实现缺陷。
+fn gauss_eliminate(
+  m : Array[Double],
+  rhs : Array[Double],
+  n : Int,
+) -> (Bool, Double) {
+  let mut sign = 1.0
+  for col = 0; col < n; col = col + 1 {
+    // 在 col 列、从 col 行往下找绝对值最大的元素
+    let mut pivot = col
+    let mut best = m[col * n + col].abs()
+    for r = col + 1; r < n; r = r + 1 {
+      let v = m[r * n + col].abs()
+      if v > best {
+        best = v
+        pivot = r
+      }
+    }
+    // 整列都是 0 → 奇异
+    if best == 0.0 {
+      return (false, sign)
+    }
+    // 换行（连带 rhs，并翻转符号）
+    if pivot != col {
+      for c = 0; c < n; c = c + 1 {
+        let tmp = m[col * n + c]
+        m[col * n + c] = m[pivot * n + c]
+        m[pivot * n + c] = tmp
+      }
+      let tb = rhs[col]
+      rhs[col] = rhs[pivot]
+      rhs[pivot] = tb
+      sign = 0.0 - sign
+    }
+    // 消去 col 列下方
+    let p = m[col * n + col]
+    for r = col + 1; r < n; r = r + 1 {
+      let f = m[r * n + col] / p
+      if f != 0.0 {
+        for c = col; c < n; c = c + 1 {
+          m[r * n + c] = m[r * n + c] - f * m[col * n + c]
+        }
+        rhs[r] = rhs[r] - f * rhs[col]
+      }
+    }
+  }
+  (true, sign)
+}
+
+///|
+/// 复制前 len 个元素（对拍对象不该有副作用，所以先复制再改）。
+fn copy_of(src : Array[Double], len : Int) -> Array[Double] {
+  let out : Array[Double] = []
+  for i = 0; i < len; i = i + 1 {
+    out.push(src[i])
+  }
+  out
+}
+
+///|
+/// 解 n 元线性方程组 `A x = b`（A 为 n×n 行主序）。
+///
+/// 奇异时返回 `None` —— 与绑定的 `Result::Err` 对应，
+/// 因此对拍时可以同时覆盖"正常解"和"奇异判定"两条路径。
+pub fn solve(a : Array[Double], n : Int, b : Array[Double]) -> Array[Double]? {
+  let m = copy_of(a, n * n)
+  let rhs = copy_of(b, n)
+  let (ok, _) = gauss_eliminate(m, rhs, n)
+  if !ok {
+    return None
+  }
+  // 回代
+  let x : Array[Double] = []
+  for i = 0; i < n; i = i + 1 {
+    x.push(0.0)
+  }
+  for i = n - 1; i >= 0; i = i - 1 {
+    let mut s = rhs[i]
+    for j = i + 1; j < n; j = j + 1 {
+      s = s - m[i * n + j] * x[j]
+    }
+    x[i] = s / m[i * n + i]
+  }
+  Some(x)
+}
+
+///|
+/// 行列式（消元后对角线之积 × 行交换符号）。奇异矩阵返回 `0.0`。
+pub fn det(a : Array[Double], n : Int) -> Double {
+  let m = copy_of(a, n * n)
+  // det 不需要右端项，但共用消元函数要一个同样长度的数组
+  let dummy : Array[Double] = []
+  for i = 0; i < n; i = i + 1 {
+    dummy.push(0.0)
+  }
+  let (ok, sign) = gauss_eliminate(m, dummy, n)
+  if !ok {
+    return 0.0
+  }
+  let mut d = sign
+  for i = 0; i < n; i = i + 1 {
+    d = d * m[i * n + i]
+  }
+  d
+}

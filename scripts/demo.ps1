@@ -130,7 +130,7 @@ Run 'powershell' @('-ExecutionPolicy', 'Bypass', '-File', 'scripts\fetch-eigen.p
 # ── Step 5：完整测试 ─────────────────────────────────────────────────────────
 # ⚠️ 必须带包名：整模块调用时，声明了 native-stub 的库包会被额外尝试
 #    链接成 .exe，而库包没有 main → LNK2019（见 docs/PITFALLS.md 第 10.2 节）。
-Step 5 "完整测试（Eigen 绑定 18 个 + 纯 MoonBit 参考实现 6 个）"
+Step 5 "完整测试（Eigen 绑定 18 个 + 纯 MoonBit 参考实现 13 个）"
 Run $moon @('test', '--target', 'native', 'src') -RetrySpawn
 Run $moon @('test', '--target', 'native', 'reference')
 
