@@ -103,13 +103,49 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码。
 
 ---
 
-## D8 · 2026-10-13 · `format_double` 用手写定点格式化
+## D8 · 2026-10-13 · `to_string` 只用字符串拼接，不引入未验证 API
 
-**决策**：`Matrix::to_string` 的数值格式化由 MoonBit 手写实现（定点三位小数），
-不依赖标准库的浮点格式化。
+**决策**：`Matrix::to_string` 仅使用最基础的字符串拼接（`+`）与 Show 插值
+（`"\{expr}"`）构建输出。
 
-**理由**：目标只是"列对齐的可读输出"，不需要完整的浮点格式化语义；
-手写实现避免依赖尚未确认的格式化 API，也避免不同后端输出不一致。
+**修订过程（值得记录）**：初版用 `StringBuilder::new / write_string / write_char /
+to_string` 加一个手写的 `format_double`（依赖 `Double::round / to_int / to_double`）
+来做列对齐输出。第二轮复核时改为字符串拼接，原因是：
 
-**已知局限**：极大/极小值会被压成 `0.000`。这是**展示用途**的取舍，
-不影响数值计算本身；已记入 README 的 Limitations。
+1. 复核确认 MoonBit 有 `_test.mbt`（BlackBox）与 `_wbtest.mbt`（WhiteBox）两种测试语义，
+   而 BlackBox 测试**看不到包的私有成员** —— 这暴露出脚手架里的一个真实缺陷，
+   说明"凭印象写 API"确实会出错（见 D9）。
+2. 既然已经证明印象不可靠，就应该**主动缩小未验证 API 的面积**：
+   `StringBuilder` 的 4 个方法名 + `Double` 的 3 个方法名一共 7 个未经确认的符号，
+   换成一个确定的 `+` 拼接与一个确定的插值语法。
+3. 列对齐是纯装饰性的，不值得用 7 个不确定符号去换。
+
+**取舍**：失去列对齐（`0.800` 与 `12.340` 不会右对齐），且字符串拼接是 O(n²)。
+两者都只影响**展示用途**，不影响数值计算。列对齐与更高效的构建方式列入 v2
+（见 ROADMAP 第 6 节）。
+
+**推广的工程纪律**：在编译器无法验证的阶段，把不确定符号的数量当作成本来管理。
+
+---
+
+## D9 · 2026-10-13 · 单元测试放在 `_wbtest.mbt`（WhiteBox）
+
+**决策**：测试文件命名为 `src/eigen_wbtest.mbt`，而不是最初设想的 `eigen_test.mbt`。
+
+**理由**：官方 "Writing Tests" 文档明确两种测试文件的语义差异：
+
+| 文件后缀 | 类型 | 可见性 |
+|---|---|---|
+| `_test.mbt` | BlackBox | 只能访问包的 **public** 成员（模拟真实用户视角） |
+| `_wbtest.mbt` | WhiteBox | 可以访问包的**全部**成员 |
+
+本项目的测试需要调用 `ffi.mbt` 里的私有 `extern "C"` 声明
+（`mb_eigen_shim_probe`、`mb_eigen_matrix_*`）—— 按官方 agent skill 的建议，
+extern 声明应当保持私有、只通过安全的公开 API 暴露。因此这些测试**必须**是 WhiteBox，
+放在 `_test.mbt` 里会直接编译失败。
+
+**代价与后续**：缺少 BlackBox 视角的测试（即"用户能不能正确使用这个包"）。
+v2 应补一个 `eigen_test.mbt`，用包别名（预计是 `@src`）调用公开 API。
+该别名需在工具链就绪后确认，已记入 PITFALLS 第 8 节。
+
+**出处**：<https://docs.moonbitlang.com/en/latest/language/tests.html>

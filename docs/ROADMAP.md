@@ -54,7 +54,7 @@
 - [ ] 用真实矩阵替换 probe：`mat_new` / `mat_from_array` / `mat_copy_to` 跑通
 - [ ] 运算打通：加、减、乘、转置、数乘
 - [ ] `solve` / `det` / `norm` / `dot` 打通，含奇异矩阵检测
-- [ ] `eigen_test.mbt` 的 12 个测试全绿（含 5 个错误路径测试）
+- [ ] `eigen_wbtest.mbt` 的 17 个测试全绿（含 5 个错误路径测试）
 - [ ] 校验 `#borrow` 行为：若崩溃，退回 owned 约定 + 显式 `moonbit_decref`
 - [ ] 记录实测结果到 PITFALLS 第 8 节的待验证清单
 - [ ] **【熔断点】** 10/23：矩阵乘法是否跑通

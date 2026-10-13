@@ -230,6 +230,8 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码 —— 这是官方 agent skill 推�
 - [ ] `moon test` 与 `moon run` 在 `cc-link-flags` 为空时是否都正常（issue #637）
 - [ ] clang-cl 是否需要显式链接 C++ 运行时（当前留空）
 - [ ] `@utf8.decode_lossy` 的确切包路径与函数名
-- [ ] MoonBit 侧 `FixedArray::from_array` / `Array::from_fixed_array` / `Double::round` 等 API 名
-- [ ] `Matrix::to_string` 里 `StringBuilder` 的方法名
+- [ ] MoonBit 侧 `FixedArray::from_array` / `Array::from_fixed_array` / `FixedArray::make` 的签名
+- [ ] `Array::length()` 与 `String::contains` 是否存在、签名如何
+- [ ] `_wbtest.mbt` 与 `_test.mbt` 的实际可见性差异（本文件第 8 节末条已按官方文档处理）
+- [ ] 若将来要加 BlackBox 测试，当前包的别名是否为 `@src`
 - [ ] 是否需要在 CI（Linux/gcc）上加 `-lstdc++`

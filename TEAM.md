@@ -23,7 +23,7 @@
 | W1 | 工具链穿刺 | Eigen 获取脚本、构建期自检、ASan 接线 |
 | W2 | C++ 胶水层 | `src/eigen_shim.cpp` —— 模板实例化、ABI 归一化、生命周期与异常拦截 |
 | W2 | MoonBit API 层 | `src/eigen.mbt` —— `Matrix` 类型、`Result` 错误处理、格式化输出 |
-| W2 | 测试 | `src/eigen_test.mbt`（含错误路径） |
+| W2 | 测试 | `src/eigen_wbtest.mbt`（含错误路径；WhiteBox 才能访问私有 FFI 声明） |
 | W3 | 示例与文档 | `examples/`、README 实测数据、`docs/DESIGN.md` |
 | W4 | 演示与验收 | `demo/` 一键复现脚本、录屏、验收材料 |
 
