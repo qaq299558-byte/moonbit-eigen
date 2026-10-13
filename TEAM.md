@@ -25,7 +25,7 @@
 | W2 | MoonBit API 层 | `src/eigen.mbt` —— `Matrix` 类型、`Result` 错误处理、格式化输出 |
 | W2 | 测试 | `src/eigen_wbtest.mbt`（含错误路径；WhiteBox 才能访问私有 FFI 声明） |
 | W3 | 示例与文档 | `examples/`、README 实测数据、`docs/DESIGN.md` |
-| W4 | 演示与验收 | `demo/` 一键复现脚本、录屏、验收材料 |
+| W4 | 演示与验收 | `scripts/demo.ps1` 一键复现脚本、录屏、验收材料 |
 
 ## 贡献记录约定
 

@@ -159,11 +159,11 @@ moon build --target native
 
 ## 示例
 
-`examples/` 下计划提供（W3 交付，见 [docs/ROADMAP.md](docs/ROADMAP.md)）：
+`examples/` 下提供（骨架已写，待工具链验证）：
 
-- `examples/solve` —— 解线性方程组并打印过程
-- `examples/linreg` —— 用正规方程做一元线性回归（体现"真的能做数值"）
-- `examples/bench` —— 与纯 MoonBit 三重循环实现对比，展示绑定带来的性能差异
+- `examples/solve` —— 解线性方程组并打印过程，含错误路径演示（奇异矩阵、维度不匹配）
+- `examples/linreg` —— 用正规方程做一元线性回归（数据由 `y = 2x + 1` 精确生成，结果可手算核对）
+- `examples/bench` —— 与纯 MoonBit 三重循环实现对比，展示绑定带来的性能差异（**待写**）
 
 ---
 
