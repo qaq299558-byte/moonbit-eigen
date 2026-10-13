@@ -347,8 +347,10 @@ moon 给**生成的 C 代码**默认带 `/utf-8`，但 `cc-flags` 是"**覆盖**
 - **`scripts/fetch-eigen.ps1` 加了多镜像 + 重试**：按 GitLab 官方 → GitHub 镜像 →
   Gitee 镜像的顺序尝试，每个源重试 3 次并递增等待，每次尝试前清理半成品目录。
   原因是实测本机到 gitlab.com / github.com 的连接不稳定（`git push` 都断过一次）。
-- **`scripts/spike.ps1` 重排了步骤**：把 selftest（Step 3）放在获取 Eigen（Step 4）**之前**，
-  保证最关键的结论最早拿到，不被网络问题挡住。
+- **步骤顺序：把 selftest 放在获取 Eigen 之前**（现在是 `scripts/demo.ps1` 的 Step 3 与 Step 4）。
+  这样"MoonBit 能不能调用 C++"这个机制结论可以最早拿到，不被第三方依赖的下载问题挡住。
+  这条约定最初写在 `scripts/spike.ps1` 里；后来该脚本与 `demo.ps1` 合并
+  （两者功能约 80% 重复），顺序约定保留。
 - **脚本语法校验的教训**：沙箱处于 ConstrainedLanguage（`&` 连解析都过不去）、
   且禁止命名管道（bash 报 `couldn't create signal pipe`），所以无法在沙箱内真正校验脚本。
   退而求其次用"引号/大括号配平"检查，但要注意**按 UTF-8 读取** ——

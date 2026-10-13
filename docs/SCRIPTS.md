@@ -16,8 +16,7 @@
 |---|---|---|---|
 | `fetch-eigen.ps1` | Windows | 获取 Eigen 源码 | ✅ 已实测 |
 | `fetch-eigen.sh` | Linux/macOS | 获取 Eigen 源码 | ⚠️ 未在开发机验证 |
-| `spike.ps1` | Windows | 环境自检 / 技术穿刺（6 步） | ✅ 已实测全绿 |
-| `demo.ps1` | Windows | 一键复现演示（7 步） | ✅ 已实测全绿 |
+| `demo.ps1` | Windows | 环境自检 + 一键复现演示（8 步） | ✅ 已实测全绿 |
 | `demo.sh` | Linux/macOS | 一键复现演示 | ⚠️ 未在开发机验证 |
 | `run-asan.ps1` | Windows | ASan 内存检查 | ✅ 已实测生效 |
 | `run-asan.sh` | Linux/macOS | ASan 内存检查（GCC 语法） | ⚠️ 未在开发机验证 |
@@ -59,7 +58,7 @@ Eigen **不入库**（`src/third_party/` 在 `.gitignore` 里）。理由：
 
 ---
 
-## 2. 环境自检：`spike.ps1`
+## 2. 环境自检：已并入 `demo.ps1`
 
 6 个步骤，用来回答"这台机器到底能不能跑这个项目"：
 

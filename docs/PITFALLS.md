@@ -627,7 +627,7 @@ Get-Content -LiteralPath $tmpLog | ForEach-Object { "    $_" }
 
 ```
 fetch-eigen.ps1 exit = 0
-spike.ps1       exit = 0
+demo.ps1        exit = 0（见第 7 节）
 demo.ps1        exit = 0
 build-shim.ps1  exit = 0
 ```

@@ -52,7 +52,7 @@ fn val(m : Matrix, i : Int32, j : Int32) -> Double {
 ///|
 test "shim probe 报告 C++17 与 Eigen 3.x" {
   // 最小可信度证据：能返回非零就说明 C++ 胶水真的被编译进构建了。
-  // 这个测试同时是技术穿刺的判定依据（见 scripts/spike.ps1 与 docs/ROADMAP.md）。
+  // 这个测试同时是技术穿刺的判定依据（见 scripts/demo.ps1 与 docs/ROADMAP.md）。
   let probe = mb_eigen_shim_probe()
   if probe < 17000 {
     abort("probe 返回值异常: \{probe}")
