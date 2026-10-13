@@ -35,19 +35,21 @@
 
 ## 3. 周计划
 
-### W1（10/13–10/19）工具链穿刺 + ASan 接线
+### W1（10/13–10/19）工具链穿刺 + ASan 接线 —— **基本完成（10/13 当天）**
 
 **目标：证明技术路径可行，而不是写功能。**
 
-- [ ] 按固定版本获取 Eigen：`powershell -File scripts/fetch-eigen.ps1`
+- [x] ~~工具链就位~~ → MoonBit `0.1.20261012`/`moonc v0.10.15` + VS Build Tools 18 / MSVC 14.51
+- [x] ~~骨架代码跑通 `moon check`~~ → **0 errors**（覆盖 API 层 + FFI 声明 + 17 个测试 + 3 个示例）
+- [x] ~~`.cpp` 能否作 native-stub~~ → **成立（Plan A）**，`moon test --target native selftest` **7/7 通过**
+      → **熔断点解除，不需要切 Plan B**
+- [x] ~~补齐 `scripts/fetch-eigen.sh`~~ → 已就位（含多镜像 + 重试）
+- [ ] 按固定版本获取 Eigen：`powershell -File scripts/fetch-eigen.ps1`（**下一步**）
 - [ ] 实现并跑通 `mb_eigen_shim_probe`（返回 ≥ 17000 即证明 C++17 + Eigen 都进来了）
-- [ ] 骨架代码跑通 `moon check`
+- [ ] 跑通 `moon test --target native`（17 个测试全绿）
 - [ ] **把 ASan 接上**（官方 agent skill 的做法：`-fsanitize=address -fsanitize=undefined`）
       —— 官方明确建议把它作为**第 1 周交付物**而非最后一步，因为
       所有权类 bug 大多"运行时才炸、且不炸在出错点"
-- [ ] 补齐 `scripts/fetch-eigen.sh`（Linux/macOS）
-- [ ] 跑通 `moon test --target native`（哪怕只有 probe 一个测试）
-- [ ] **【熔断点】** 10/19：`.cpp` stub 是否可行 → 不行则切 Plan B
 
 ### W2（10/20–10/26）胶水层 + MoonBit API + 测试
 

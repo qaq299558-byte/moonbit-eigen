@@ -20,23 +20,28 @@ match a.solve(b) {
 
 ## ⚠️ 项目状态（2026-10-13）
 
-**MoonBit 侧已通过类型检查；C++ 侧尚未编译验证。**
+**MoonBit 侧与 FFI 机制均已实测通过；Eigen 绑定本体待第三方源码就位后验证。**
 
 | 部分 | 状态 |
 |---|---|
-| MoonBit API 层、FFI 声明、17 个单元测试、3 个示例 | ✅ `moon check --target native` 通过（0 errors，本机 moonc v0.10.15） |
-| C++ 胶水层 `src/eigen_shim.cpp` | ⏳ 未编译 —— 本机缺 MSVC 的 C++ 工作负载 |
-| 运行期行为（真实矩阵运算、ASan/UBSan） | ⏳ 待 `moon test --target native` 跑通 |
+| MoonBit API 层、FFI 声明、17 个单元测试、3 个示例 | ✅ `moon check --target native` 通过（0 errors） |
+| **FFI 机制全链路**：`.cpp` 作 native-stub、外部对象 + finalizer、`#borrow` 传参、错误哨兵约定、UTF-8 编码往返 | ✅ `moon test --target native selftest` **7/7 通过** |
+| Eigen 绑定本体（`src/eigen_shim.cpp`） | ⏳ 待 Eigen 源码就位后 `moon test --target native` |
+| ASan / UBSan | ⏳ 待接入 |
 
-本机已装 MoonBit（`moon 0.1.20261012`）但没有 C++ 工具链，moon 的报错是：
+工具链环境（本机实测）：
 
 ```
-Windows native backend requires MSVC Build Tools with C++ tools and Windows SDK
+MoonBit  moon 0.1.20261012 / moonc v0.10.15
+C++      VS Build Tools 18 · MSVC 14.51 · E:\VSBuildTools
 ```
 
-诊断详情与解决办法见 [docs/PITFALLS.md](docs/PITFALLS.md) 第 9 节。
+关于 FFI 机制的三条实测经验（`cc-flags` 与 `stub-cc-flags` 的语义差异、
+`moonbit_make_external_object` 取值必须解引用、`/utf-8` 的必要性）
+记录在 [docs/PITFALLS.md](docs/PITFALLS.md) 第 8 节。
 
-**因此：接口契约已由类型系统保证，但"能不能算出正确结果"还没有被验证过。**
+**因此：接口契约由类型系统保证，"月兔能不能调用 C++"这个机制问题已经实测回答，
+但"Eigen 绑定能不能算出正确结果"还没有被验证过。**
 
 ---
 
