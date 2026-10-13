@@ -17,6 +17,7 @@
 | `fetch-eigen.ps1` | Windows | 获取 Eigen 源码 | ✅ 已实测 |
 | `fetch-eigen.sh` | Linux/macOS | 获取 Eigen 源码 | ⚠️ 未在开发机验证 |
 | `demo.ps1` | Windows | 环境自检 + 一键复现演示（8 步） | ✅ 已实测全绿 |
+| `spike.ps1` | Windows | **兼容旧名称的薄壳**，直接委托给 `demo.ps1` | ✅ 已实测 |
 | `demo.sh` | Linux/macOS | 一键复现演示 | ⚠️ 未在开发机验证 |
 | `run-asan.ps1` | Windows | ASan 内存检查 | ✅ 已实测生效 |
 | `run-asan.sh` | Linux/macOS | ASan 内存检查（GCC 语法） | ⚠️ 未在开发机验证 |
@@ -58,7 +59,12 @@ Eigen **不入库**（`src/third_party/` 在 `.gitignore` 里）。理由：
 
 ---
 
-## 2. 环境自检：已并入 `demo.ps1`
+## 2. 环境自检：`demo.ps1`（旧名 `spike.ps1` 保留为薄壳）
+
+> **历史**：环境自检原先是独立的 `spike.ps1`（6 步），后来发现它与 `demo.ps1`
+> 有约 80% 重复，独有的两件事（`vswhere` 检测 MSVC、"先自检再取依赖"的顺序）
+> 已全部并入 `demo.ps1`。`spike.ps1` 现在只剩 3 行代码 —— 直接委托给 `demo.ps1`，
+> 这样早期文档与提交记录里的引用仍然有效。
 
 6 个步骤，用来回答"这台机器到底能不能跑这个项目"：
 
