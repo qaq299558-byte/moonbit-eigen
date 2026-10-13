@@ -49,10 +49,31 @@ if ($moon) {
 }
 
 $hasCxx = $false
+
+# 1) PATH 上直接可见的 cl / clang-cl
 foreach ($c in 'cl', 'clang-cl') {
   $p = Get-Command $c -ErrorAction SilentlyContinue
   if ($p) { Ok "$c -> $($p.Source)"; $hasCxx = $true }
 }
+
+# 2) PATH 上没有 **不等于** 没装。
+#    moon 是通过 vswhere 自动发现 MSVC 的，而装好的 VS Build Tools
+#    通常不会把 cl.exe 放进 PATH。
+#    实测：本机 MSVC 在 E:\VSBuildTools，PATH 里没有 cl，
+#    但 moon check / moon test 全程正常 —— 早期版本在这里误报过失败。
+if (-not $hasCxx) {
+  $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+  if (Test-Path -LiteralPath $vswhere) {
+    $installs = & $vswhere -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>$null
+    if ($installs) {
+      foreach ($ip in $installs) {
+        Ok "MSVC（经 vswhere 发现，未在 PATH 上）-> $ip"
+      }
+      $hasCxx = $true
+    }
+  }
+}
+
 if (-not $hasCxx) {
   Fail "未找到 cl.exe 或 clang-cl.exe"
   Write-Host "         Windows 上 native 后端只接受 MSVC 兼容工具链（MinGW 被官方排除）。" -ForegroundColor DarkGray
@@ -88,6 +109,13 @@ Write-Host "  extern C 导出 / moonbit_make_external_object + finalizer / #borr
 Write-Host "  错误哨兵约定 / moonbit_make_bytes + @utf8 的编码往返。" -ForegroundColor DarkGray
 Write-Host ""
 & $moon test --target native selftest
+# 实测：Windows 上刚构建出来的 .exe 偶发被杀软扫描暂锁，moon 会报
+# "Failed to spawn command"，这不是测试失败、也不是 Plan A 不成立。
+# 这里失败后重试一次，避免自检脚本给出冤枉的结论。
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "    （首次未通过，可能是新建的 .exe 被杀软暂锁，重试一次）" -ForegroundColor DarkGray
+  & $moon test --target native selftest
+}
 if ($LASTEXITCODE -ne 0) {
   Fail "selftest 未通过 —— 这直接决定 Plan A 是否成立"
   Write-Host "    先试强制 C 后端（新 native 后端可能不支持 stub）：" -ForegroundColor DarkGray

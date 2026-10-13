@@ -562,3 +562,72 @@ CI 与文档里的命令因此全部改为带包名的形式。
 **教训**：挑第三方源**必须验证内容，不能只看名字** ——
 Gitee 那个 `mirrors/eigen` 就是活生生的例子。现在脚本会校验
 `Eigen/Dense` 是否存在，并解析 `Macros.h` 打印真实版本。
+
+---
+
+## 11. PowerShell 5.1 的原生命令 stderr 陷阱（同一批脚本咬了**三次**）
+
+### 现象
+
+脚本莫名其妙地中止，或者退出码不对，而**被调用的程序本身是成功的**：
+
+| 脚本 | 触发它的那条 stderr |
+|---|---|
+| `fetch-eigen.ps1` | `git clone` 失败时的 fatal 信息 |
+| `demo.ps1` | `moon check` 输出的一条 warning |
+| `build-shim.ps1` | `cl.exe` 的版权横幅 |
+
+三条都是**正常输出**、不是错误，却让脚本崩了。
+
+### 机理
+
+```
+原生命令写 stderr
+  → PowerShell 5.1 用 2>&1 把它接进管道时产生 NativeCommandError（ErrorRecord）
+  → 脚本开头设了 $ErrorActionPreference = 'Stop'，于是它变成**终止性错误**
+  → 脚本直接崩在"判读 $LASTEXITCODE"之前
+```
+
+即使临时切回 `Continue` 不中止，也有两个残留问题：
+
+- 打印出来只是 `System.Management.Automation.RemoteException` 这种无用信息（`ErrorRecord` 的 `ToString()`）
+- **`powershell -File` 会因此返回非零退出码**，看起来像脚本失败
+
+### 两种修法
+
+**修法一（通用）**：临时切回 `Continue`，**以 `$LASTEXITCODE` 作为唯一成功判据**。
+适用于 stderr 是预期内的噪声、且需要展示的情况。
+
+```powershell
+$saved = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+$output = Invoke-Expression $cmd 2>&1
+$code = $LASTEXITCODE
+$ErrorActionPreference = $saved
+```
+
+**修法二（编译器场景更好）**：**把重定向交给 `cmd.exe` 自己做**，
+PowerShell 就完全看不到 stderr：
+
+```powershell
+& cmd.exe /c "$Cc $clArgs > `"$tmpLog`" 2>&1"
+$exit = $LASTEXITCODE
+Get-Content -LiteralPath $tmpLog | ForEach-Object { "    $_" }
+```
+
+`build-shim.ps1` 用的是修法二，输出干净且退出码正确。
+
+### 附带发现：自然结束的脚本**不保证**返回 0
+
+`build-shim.ps1` 走到成功分支、打印完"完成"之后自然结束，
+但 `powershell -File` 实测返回的是 **-1**（补上显式 `exit 0` 才变成 0）。
+
+**结论：给脚本结尾补一个显式的 `exit 0`**，不要依赖"自然结束"。
+本仓库四个 `.ps1` 现在都实测过退出码为 0：
+
+```
+fetch-eigen.ps1 exit = 0
+spike.ps1       exit = 0
+demo.ps1        exit = 0
+build-shim.ps1  exit = 0
+```
