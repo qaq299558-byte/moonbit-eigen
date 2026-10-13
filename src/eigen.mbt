@@ -24,8 +24,13 @@ pub struct Matrix {
 // ---------------------------------------------------------------------------
 
 /// 取出 C 侧记录的上一次错误信息。
+///
+/// 注意 `[:]`：官方 `encoding/utf8` 的接口是
+/// `pub fn decode_lossy(BytesView, ignore_bom? : Bool) -> String`
+/// —— 收的是 **BytesView** 而不是 Bytes，所以要显式取视图。
+/// （依据：moonbitlang/core 的 encoding/utf8/pkg.generated.mbti 原文）
 fn last_error() -> String {
-  @utf8.decode_lossy(mb_eigen_last_error())
+  @utf8.decode_lossy(mb_eigen_last_error()[:])
 }
 
 /// 统一的有效性检查：rows() < 0 表示 C 侧返回了错误哨兵。

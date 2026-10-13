@@ -202,3 +202,30 @@ import {
 **为什么值得记一条**：这类"配置文件的语法细节"编译器报错信息往往不直观，
 而**读官方仓库自己的配置文件**比读文档更快得到确定答案。
 这也是本轮把"未验证假设"从 6 条压到 3 条的又一次同类操作。
+
+---
+
+## D12 · 2026-10-13 · 用 core 的 `pkg.generated.mbti` 作为 API 事实来源
+
+**决策**：把 `moonbitlang/core` 各包的 `pkg.generated.mbti`（由 `moon info` 生成的
+公开接口清单）当作校验标准库 API 的**首选事实来源**，而不是文档或教程。
+
+**理由**：本轮靠它纠正了两个会直接导致编译失败的错误：
+
+| 我原先写的 | 实际签名 | 后果 |
+|---|---|---|
+| `@utf8.decode_lossy(bytes)` | `decode_lossy(BytesView, ignore_bom? : Bool)` | 类型不匹配 |
+| `FixedArray::from_array(array)` | `from_array(array : ArrayView[T])` | 类型不匹配 |
+
+同时它确认了 `FixedArray::make(len, init)`、`Array::length`、`Array::push`、
+`impl Eq for String`、`impl Add for String` 等一批符号**确实存在**。
+
+**做法**：`web_fetch` 取 GitHub contents API（返回 base64 的 JSON），
+用 pwsh 解码后**在本地检索**——这样即使接口清单有 74KB 也不会消耗上下文。
+
+**仍未确认的一项**：`String::contains` / `String::length`。
+builtin 的清单在抓取时被截断（100KB 上限），因此测试里改用
+已确认的 `Eq for String`（`==` / `!=` 与空串比较）来替代，不依赖这两个符号。
+
+**这条决策的普适价值**：`.mbti` 是**机器生成的**，所以它不会像文档那样滞后于实现。
+以后写任何 MoonBit 代码，遇到不确定的 API，第一反应应当是找对应包的 `.mbti`。

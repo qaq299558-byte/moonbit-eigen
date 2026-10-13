@@ -229,12 +229,30 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码 —— 这是官方 agent skill 推�
 - [ ] Eigen 相对包含路径是否可行（否则改用绝对 `-I`）
 - [ ] `moon test` 与 `moon run` 在 `cc-link-flags` 为空时是否都正常（issue #637）
 - [ ] clang-cl 是否需要显式链接 C++ 运行时（当前留空）
-- [ ] `@utf8.decode_lossy` 的确切包路径与函数名
-- [ ] `FixedArray::make(len, init)` 的签名（出自官方 C-FFI 黑板报文章，尚未本机确认）
-- [ ] `Array::length()` 与 `String::contains` 是否存在、签名如何
-- [ ] `_wbtest.mbt` 与 `_test.mbt` 的实际可见性差异（见 DECISIONS D9，依据官方文档）
-- [ ] 若将来要加 BlackBox 测试，当前包的别名是否为 `@src`
-- [ ] `Result[T, String]` 作为公开 API 返回类型时的 `match` 写法（本文件按 `Ok(v) => ...` 写）
+- [x] ~~`@utf8.decode_lossy` 的确切包路径与函数名~~ → 已确认：`BytesView` 入参，已修正调用
+- [x] ~~`FixedArray::make(len, init)` 的签名~~ → 已确认（官方 core 内部即如此使用）
+- [x] ~~`Array::length()`~~ → 已确认；`String::contains` / `String::length` 仍未确认，
+      测试已改为依赖已确认的 `Eq for String` 做断言
+- [x] ~~`_wbtest.mbt` 与 `_test.mbt` 的实际可见性差异~~ → 官方文档已明确（见 DECISIONS D9）
+- [ ] 若将来要加 BlackBox 测试，当前包的别名是否为 `@src`（v2 项，非阻塞）
+- [x] ~~`Result[T, String]` 的 `match` 写法~~ → 官方 core 内大量使用，已确认
+
+**本轮通过读取 core 的接口清单（`pkg.generated.mbti`）与源码而确认的 API**：
+
+- ✅ `FixedArray::make(len, init)` —— 官方 core 内部正是这样用的
+  （`let array = FixedArray::make(length, value(0))`）。
+- ✅ `Array::length` / `Array::push` / `Array::from_fixed_array` 均存在。
+- ✅ `pub impl Eq for String`、`pub impl Add for String` —— 所以字符串可用
+  `==` / `!=` 比较、用 `+` 拼接。
+- ⚠️ **`FixedArray::from_array` 收的是 `ArrayView[T]` 而不是 `Array[T]`**
+  （`pub fn[T] FixedArray::from_array(array : ArrayView[T]) -> FixedArray[T]`）——
+  我最初那版写法会失败，上一轮换成手写循环是对的。
+- ⚠️ **`@utf8.decode_lossy` 收的是 `BytesView` 而不是 `Bytes`**
+  （`pub fn decode_lossy(BytesView, ignore_bom? : Bool) -> String`）——
+  已改为 `mb_eigen_last_error()[:]` 显式取视图。
+- ❓ `String::contains` / `String::length` **未能在清单中确认**（builtin 的
+  `.mbti` 有 74KB，抓取在 100KB 处被截断）。因此测试改用 `Eq for String`
+  做断言，避免依赖这两个符号。
 
 **本轮通过核实官方源码而确认的语法**（证据：`moonbitlang/core` 的 `double/moon.pkg`
 与 `json/moon.pkg`，经 base64 解码读取原文）：

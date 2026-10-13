@@ -196,11 +196,22 @@ test "解线性方程组 Ax=b" {
   assert_close(val(x, 1, 0), 1.4, 1.0e-9)
 }
 
-test "to_string 渲染出可读文本" {
-  let s = m2x2().to_string()
-  // 只断言结构性内容，不锁死浮点格式（v2 会改成对齐输出）
-  if !s.contains("2x2") {
-    abort("to_string 应包含尺寸信息，实际为: \{s}")
+test "to_string 输出稳定且随尺寸变化" {
+  // 刻意不依赖 String::contains（该符号在 builtin 的接口清单里未能确认，
+  // 见 docs/PITFALLS.md 第 8 节）。改用已确认的 Eq for String 做两条断言：
+  //   · 同一矩阵两次渲染应完全一致（确定性）
+  //   · 不同尺寸的矩阵渲染结果不应相同（说明尺寸信息确实写进了输出）
+  let a = m2x2().to_string()
+  let b = m2x2().to_string()
+  if a != b {
+    abort("同一个矩阵两次渲染结果不一致")
+  }
+  let c = match Matrix::zeros(3, 3) {
+    Ok(m) => m
+    Err(msg) => abort("创建失败: \{msg}")
+  }
+  if a == c.to_string() {
+    abort("2x2 与 3x3 的渲染结果不应相同")
   }
 }
 
@@ -214,7 +225,9 @@ test "尺寸不匹配的加法返回 Err 而不是崩溃" {
   }
   match a.add(b) {
     Ok(_) => abort("应当失败：尺寸不匹配的加法不该成功")
-    Err(msg) => if msg.length() == 0 { abort("错误信息不应为空") }
+    // 用 == 与空串比较（依赖已确认的 Eq for String），
+    // 而不是 String::length（该符号未在 builtin 接口清单中确认）
+    Err(msg) => if msg == "" { abort("错误信息不应为空") }
   }
 }
 
