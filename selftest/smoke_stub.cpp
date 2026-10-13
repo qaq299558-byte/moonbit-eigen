@@ -11,14 +11,14 @@
 //   5. moonbit_make_bytes + MoonBit 侧 @utf8.decode_lossy 做字符串往返
 //   6. 所有 C++ 异常都挡在 ABI 边界内
 
-#include <moonbit.h>
-
 #include <cstdint>
 #include <cstring>
 #include <exception>
 #include <new>
 #include <string>
 #include <vector>
+
+#include <moonbit.h>
 
 #ifndef MOONBIT_FFI_EXPORT
 #define MOONBIT_FFI_EXPORT

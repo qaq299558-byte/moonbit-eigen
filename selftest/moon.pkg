@@ -26,13 +26,9 @@ options(
 
   link: {
     "native": {
-      // /utf-8 很关键：MSVC 系编译器默认按系统代码页（中文 Windows 上是 GBK）
-      // 解释源文件里的中文字面量。不加这个 flag，stub 里的 "下标越界"
-      // 会以 GBK 字节进入程序，而 MoonBit 侧按 UTF-8 解码 → 得到乱码。
-      // （moon 为生成的 C 代码默认带 /utf-8，但 cc-flags 是"覆盖"语义，
-      //   所以这里必须显式写上。）
-      "cc-flags": "/std:c++17 /EHsc /utf-8",
-      "cc-link-flags": "",
+      // CI 在 ubuntu 上用 gcc，要求 GNU 风格选项并显式链接 libstdc++。
+      "cc-flags": "-std=c++17 -O1",
+      "cc-link-flags": "-lstdc++",
     },
   },
 )
