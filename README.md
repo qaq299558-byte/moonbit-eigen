@@ -310,9 +310,9 @@ moon test --target native src
 | 验收要求 | 本项目的落实 |
 |---|---|
 | ① 以 MoonBit 作为主要实现语言 | C++ 侧只做 MoonBit 无法完成的事（模板实例化 / ABI 归一化 / 生命周期桥接）；错误处理、维度检查、格式化输出、示例、测试全部在 MoonBit 侧。理由与取舍见 [docs/DESIGN.md](docs/DESIGN.md) §2 |
-| ② 仓库公开、连续可追踪的提交 | 仓库**公开**；**26 个提交**按工作单元拆分（骨架 → 类型检查 → 测试 → ASan → 文档 → 示例 → 对拍），全部为本期完成。⚠️ 早期骨架在**同一个会话内**批量产出（提交时间集中在同一天），这一点已在 [TEAM.md](TEAM.md) 中如实说明，未做任何粉饰；关键决策逐条记入 [docs/DECISIONS.md](docs/DECISIONS.md) |
+| ② 仓库公开、连续可追踪的提交 | 仓库**公开**；提交按工作单元拆分（截至 10/13 为 **29 个**）（骨架 → 类型检查 → 测试 → ASan → 文档 → 示例 → 对拍），全部为本期完成。⚠️ 早期骨架在**同一个会话内**批量产出（提交时间集中在同一天），这一点已在 [TEAM.md](TEAM.md) 中如实说明，未做任何粉饰；关键决策逐条记入 [docs/DECISIONS.md](docs/DECISIONS.md) |
 | ③ README + 可运行示例 + 必要测试 | 本文件 + **三个可运行示例**（[examples/solve](examples/solve) / [linreg](examples/linreg) / [crosscheck](examples/crosscheck)）+ 共 **38 个测试**（`src` 18 个含错误路径 + `reference` 13 个 + `selftest` 7 个，全部已实测通过）+ ASan（[scripts/run-asan.ps1](scripts/run-asan.ps1) 在 Windows/MSVC 上**已实测生效**；[scripts/run-asan.sh](scripts/run-asan.sh) 为 GCC 语法版本，**尚未在开发机验证**，本机无 Linux 环境） |
-| ④ 本期完成的实质新增工作 | 仓库为本期**新建**：全部 26 个提交都在本期（`0c22fe4` → `4f6604f`，见 `git log`）。没有历史代码，也没有从别处拷贝的实现 |
+| ④ 本期完成的实质新增工作 | 仓库为本期**新建**：全部提交都在本期（最早为 `0c22fe4`，逐条见 `git log`）。没有历史代码，也没有从别处拷贝的实现 |
 | ⑤ 开源许可证 + 说明来源 | MIT + 上方「来源与许可」一节（含 Eigen 的 MPL2） |
 | ⑥ AI 可用，但目标/路径/质量由参赛者掌握 | 每条设计决策都在 [docs/DECISIONS.md](docs/DECISIONS.md) 里记录了理由与出处。**参赛者需在提交前通读全部实现并确认自己掌握它** |
 
