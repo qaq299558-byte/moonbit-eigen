@@ -19,6 +19,13 @@
 <https://github.com/moonbitlang/Hackathon2026/blob/main/src/App.tsx>
 
 ### 0.2 Eigen 是确认的生态空白
+> **⚠️ 2026-10-13 更正**：本节一度被写成"MoonBit 没有任何线性代数能力"，
+> 那是**错误的外推**。实际检索确认：生态里**已经有纯 MoonBit 的线性代数包**
+> （[Luna-Flow/linear-algebra](https://github.com/Luna-Flow/linear-algebra)、
+> [moonbit-community/linalg](https://github.com/moonbit-community/linalg)）。
+> 下面这条检索结论针对的是 **C/C++ 绑定**，**仍然成立**：
+> 没有任何把原生数值栈（Eigen / BLAS / LAPACK）接进 MoonBit 的绑定。
+> 命题因此收窄为"Eigen 没有绑定"，而不是"线性代数缺失"。
 
 逐条检索后，以下方向在 mooncakes.io 上**没有任何 C/C++ 绑定**：
 Eigen、Armadillo、BLAS/LAPACK、SuiteSparse、nlohmann/json、OpenSSL、libcurl、

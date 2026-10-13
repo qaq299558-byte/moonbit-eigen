@@ -52,8 +52,15 @@ Eigen     3.3.90（来自 GitHub libigl/eigen 镜像；见下方「来源与许�
 
 ## 为什么需要它
 
-MoonBit 目前**没有任何线性代数能力**：`moonbitlang/core` 里没有矩阵库，
-mooncakes.io 上也没有 Eigen / Armadillo / BLAS / LAPACK 的任何绑定。
+MoonBit 生态里**已经有纯 MoonBit 的线性代数包**
+（如 [Luna-Flow/linear-algebra](https://github.com/Luna-Flow/linear-algebra)、
+[moonbit-community/linalg](https://github.com/moonbit-community/linalg)），
+但**没有把成熟的原生数值栈接进来的绑定**：`moonbitlang/core` 没有矩阵库，
+mooncakes.io 上检索不到 Eigen / Armadillo / BLAS / LAPACK 的任何绑定。
+
+**两者的关系是互补而非替代**：纯 MoonBit 实现可控、可读、可跨后端；
+绑定则直接复用几十年验证过的算法与优化。本项目补上的是后一条路径 ——
+它的产物（`Matrix` 绑定）原则上可以作为前者的原生后端。
 
 Eigen 是 C++ 世界里经过十几年验证的 header-only 线性代数库：
 零依赖、只需包含头文件、性能接近手写 BLAS。
