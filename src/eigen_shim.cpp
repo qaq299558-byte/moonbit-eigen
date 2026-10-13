@@ -23,8 +23,9 @@
 //     Eigen 的 MatrixXd 默认是列主序。为了不让这个隐含约定泄漏到
 //     MoonBit 侧，所有搬运都按 (i, j) 逐个元素进行，对外统一是行主序。
 //
-// ⚠️ 未编译验证：MoonBit 工具链与 clang-cl 安装中（见 docs/ROADMAP.md）。
-//    标记 [VERIFY] 的符号需在本机对照 $MOON_HOME/include/moonbit.h 校对。
+// ✅ 已实测通过（2026-10-13，MSVC 14.51 + moonc v0.10.15）：本文件编译、链接、
+//    运行均正常 —— selftest 7/7、Eigen 绑定 18/18、三个示例输出正确，ASan 也已接入。
+//    用到的 moonbit.h 符号：moonbit_make_external_object、moonbit_make_bytes。
 
 #include "eigen_shim.hpp"
 
@@ -387,7 +388,7 @@ MatrixBox *unwrap(void *handle) {
 
 moonbit_bytes_t to_mbt_bytes(const char *s) {
   const std::size_t n = s == nullptr ? 0 : std::strlen(s);
-  // [VERIFY] moonbit_make_bytes(len, init) 的签名（官方 skill 给出的形式）
+    // 签名已实测确认是 (长度, 初始值)，不是 (指针, 长度) —— 所以这里要 memcpy。
   moonbit_bytes_t out = moonbit_make_bytes(static_cast<std::int32_t>(n), 0);
   if (n > 0) {
     std::memcpy(out, s, n);

@@ -76,7 +76,9 @@ options(
       // 这几个 flag cl.exe 与 clang-cl 都认。
       "stub-cc-flags": "/EHsc /utf-8 /bigobj /O1",
       // cl.exe 走 MSVC ABI，C++ 运行时随驱动自动链接。
-      // [VERIFY] Linux/CI 上应改为 "-lstdc++"（见 docs/ROADMAP.md 的 CI 任务）。
+      // Linux 上需改成 "-lstdc++"（GCC 驱动不会自动链接 libstdc++），
+      // 同时 stub-cc-flags 也要换成 GCC 语法。详见 README 的「前置依赖」一节：
+      // 本项目只在 Windows/MSVC 上做过完整的构建与运行验证。
       "cc-link-flags": "",
     },
   },
