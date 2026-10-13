@@ -8,7 +8,7 @@
 #   完整步骤见 docs/PLAN_B.md。
 #
 # 用法：
-#   pwsh -File scripts/build-shim.ps1
+#   powershell -File scripts/build-shim.ps1
 #
 # 产出：build/eigen_shim.obj
 # 之后把 src/moon.pkg 换成 docs/PLAN_B.md 里给出的 Plan B 版本。
@@ -44,7 +44,7 @@ if (-not $compiler) {
 }
 
 if (-not (Test-Path -LiteralPath (Join-Path $root 'src\third_party\eigen\Eigen\Dense'))) {
-  Write-Host "未找到 Eigen。请先运行：pwsh -File scripts/fetch-eigen.ps1" -ForegroundColor Red
+  Write-Host "未找到 Eigen。请先运行：powershell -File scripts/fetch-eigen.ps1" -ForegroundColor Red
   exit 1
 }
 

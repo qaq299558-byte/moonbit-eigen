@@ -12,7 +12,7 @@
 #   6. 结论
 #
 # 用法：
-#   pwsh -File scripts/spike.ps1
+#   powershell -File scripts/spike.ps1
 
 $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $PSScriptRoot

@@ -58,7 +58,7 @@ moon test --target native
 
 ```powershell
 cd D:\moonbit\moonbit-eigen
-pwsh -File scripts/build-shim.ps1      # 产出 build/eigen_shim.obj
+powershell -File scripts/build-shim.ps1      # 产出 build/eigen_shim.obj
 # 然后按第 4 节替换 src/moon.pkg
 moon test --target native
 ```

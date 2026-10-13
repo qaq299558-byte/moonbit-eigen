@@ -345,7 +345,18 @@ void *wrap(MatrixBox *box) {
   return obj;
 }
 
-MatrixBox *unwrap(void *handle) { return static_cast<MatrixBox *>(handle); }
+/// 从 MoonBit 传回来的句柄取出 MatrixBox*。
+///
+/// ⚠️ 必须**解引用**：句柄是 moonbit_make_external_object 返回的
+/// **payload 指针**，payload 里存的才是 MatrixBox*。
+/// （此前这里漏了解引用，直接当成 MatrixBox* 用 → 读到垃圾。
+///   同一个文件里的 matrix_finalize 是 `delete *slot`，两处必须一致。）
+MatrixBox *unwrap(void *handle) {
+  if (handle == nullptr) {
+    return nullptr;
+  }
+  return *static_cast<MatrixBox **>(handle);
+}
 
 moonbit_bytes_t to_mbt_bytes(const char *s) {
   const std::size_t n = s == nullptr ? 0 : std::strlen(s);

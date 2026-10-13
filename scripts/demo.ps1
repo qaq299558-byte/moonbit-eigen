@@ -4,7 +4,7 @@
 # 在一个干净的 clone 里运行它，应当得到完整、可核对的结果。
 #
 # 用法：
-#   pwsh -File scripts/demo.ps1
+#   powershell -File scripts/demo.ps1
 #
 # 设计要点：
 #   · 每一步都打印它在做什么（评审要看的是过程，不只是结论）
@@ -55,7 +55,7 @@ if (-not $moon) {
 Run "& '$moon' version --all"
 
 Step 2 "获取第三方依赖（Eigen，按固定版本）"
-Run "pwsh -File scripts/fetch-eigen.ps1"
+Run "powershell -File scripts/fetch-eigen.ps1"
 
 Step 3 "类型检查"
 Run "& '$moon' check --target native"

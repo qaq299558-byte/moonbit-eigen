@@ -39,7 +39,7 @@
 
 **目标：证明技术路径可行，而不是写功能。**
 
-- [ ] 按固定版本获取 Eigen：`pwsh -File scripts/fetch-eigen.ps1`
+- [ ] 按固定版本获取 Eigen：`powershell -File scripts/fetch-eigen.ps1`
 - [ ] 实现并跑通 `mb_eigen_shim_probe`（返回 ≥ 17000 即证明 C++17 + Eigen 都进来了）
 - [ ] 骨架代码跑通 `moon check`
 - [ ] **把 ASan 接上**（官方 agent skill 的做法：`-fsanitize=address -fsanitize=undefined`）

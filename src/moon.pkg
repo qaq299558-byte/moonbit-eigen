@@ -48,15 +48,24 @@ options(
   // 从而不受 issue #586（cc-flags 按 pwd 解析）影响。
   link: {
     "native": {
-      // /EHsc: 开启标准 C++ 异常（Eigen 断言与 std::exception 需要）
-      // /utf-8: 让 MSVC 系编译器按 UTF-8 解释源文件。**不能省** ——
-      //         中文 Windows 上默认按 GBK，stub 里的中文字面量会以 GBK
-      //         进入程序，而 MoonBit 侧按 UTF-8 解码 → 错误信息变乱码。
-      //         （moon 给生成的 C 代码默认带 /utf-8，但 cc-flags 是"覆盖"语义。）
+      // ── 关于 /std: 的重要教训（实测命令行得出，详见 docs/PITFALLS.md）───
+      // moon 给 stub 的默认命令行**已经带了 /std:c11**：
+      //   cl /Fo...obj /I<moon include> /Z7 /c /std:c11 /nologo <stub.cpp> <本字段> /MT
+      // 而 cc-flags 与 stub-cc-flags 的语义不同：
+      //   · cc-flags      —— 替换默认值，作用于所有源文件（含 moonc 生成的 C）
+      //   · stub-cc-flags —— 追加到默认值之后，只作用于 stub
+      // 所以**两处都不能写 /std:**，否则命令行上会出现两个 /std: → cl error D8016。
+      // 正确做法是不指定标准版本，让 cl 按扩展名自己选
+      // （.c 走 C，.cpp 走 MSVC 默认的 C++14 —— Eigen 3.4 要求 C++14，够用）。
+      //
+      // /EHsc  : 开启标准 C++ 异常展开语义（Eigen 断言与 std::exception 需要）
+      // /utf-8 : 让 MSVC 按 UTF-8 解释源文件。**不能省** —— 中文 Windows 上默认
+      //          按 GBK，stub 里的中文字面量会以 GBK 进入程序，而 MoonBit 侧按
+      //          UTF-8 解码 → 错误信息变乱码。
       // /bigobj: Eigen 模板展开产生大量 COMDAT 段，MSVC 系需要它
-      // /O1: 压低优化级别以控制模板编译时间
+      // /O1    : 压低优化级别以控制模板编译时间
       // 这几个 flag cl.exe 与 clang-cl 都认。
-      "cc-flags": "/std:c++17 /EHsc /utf-8 /bigobj /O1",
+      "stub-cc-flags": "/EHsc /utf-8 /bigobj /O1",
       // cl.exe 走 MSVC ABI，C++ 运行时随驱动自动链接。
       // [VERIFY] Linux/CI 上应改为 "-lstdc++"（见 docs/ROADMAP.md 的 CI 任务）。
       "cc-link-flags": "",

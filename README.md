@@ -94,7 +94,7 @@ Eigen 是 C++ 世界里经过十几年验证的 header-only 线性代数库：
 
 ```bash
 # 1) 按固定版本获取 Eigen（不入库，见 .gitignore）
-pwsh -File scripts/fetch-eigen.ps1          # Windows
+powershell -File scripts/fetch-eigen.ps1          # Windows
 # bash scripts/fetch-eigen.sh               # Linux/macOS（W1 补齐）
 
 # 2) 先验证 C++ 胶水真的被编进来了（一行自检，见 docs/ROADMAP.md 第 1 周）

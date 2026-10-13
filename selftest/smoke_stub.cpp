@@ -73,7 +73,19 @@ moonbit_bytes_t to_mbt_bytes(const std::string &s) {
   return out;
 }
 
-Box *as_box(void *handle) { return static_cast<Box *>(handle); }
+/// 从 MoonBit 传回来的句柄取出 C++ 对象指针。
+///
+/// ⚠️ 必须**解引用**：句柄是 moonbit_make_external_object 返回的
+/// **payload 指针**，payload 里存的才是 Box*。
+/// 直接把 payload 指针 static_cast 成 Box* 会读到垃圾
+/// （实测表现：rows() 返回 607 —— 那是堆指针的高 4 字节）。
+/// 注意 box_finalize 里是正确的（delete *slot），两处必须保持一致。
+Box *as_box(void *handle) {
+  if (handle == nullptr) {
+    return nullptr;
+  }
+  return *static_cast<Box **>(handle);
+}
 
 }  // namespace
 

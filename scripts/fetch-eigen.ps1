@@ -11,9 +11,9 @@
 #   各镜像内容一致，换源不影响正确性。
 #
 # 用法：
-#   pwsh -File scripts/fetch-eigen.ps1
-#   pwsh -File scripts/fetch-eigen.ps1 -Ref 3.4.0
-#   pwsh -File scripts/fetch-eigen.ps1 -Retries 5
+#   powershell -File scripts/fetch-eigen.ps1
+#   powershell -File scripts/fetch-eigen.ps1 -Ref 3.4.0
+#   powershell -File scripts/fetch-eigen.ps1 -Retries 5
 #
 # 依赖：git
 

@@ -284,10 +284,60 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码 —— 这是官方 agent skill 推�
 `abort`、`test` 块、`@utf8.decode_lossy`。
 - [ ] 是否需要在 CI（Linux/gcc）上加 `-lstdc++`
 
-**✅ 已由 `moon check` 验证**（moonc v0.10.15）：
+**✅ 已在本机验证**（moonc v0.10.15 + MSVC 14.51 `cl.exe` / VS Build Tools 18）：
 
-- 全部 MoonBit 代码通过类型检查 —— API 层、FFI 声明、17 个测试、3 个示例。
-  命令：`moon check --target native`（在模块根目录执行，输出 `0 errors`）。
+| 验证项 | 命令 | 结果 |
+|---|---|---|
+| MoonBit 类型检查（API 层 + FFI 声明 + 17 个测试 + 3 个示例） | `moon check --target native` | **0 errors** |
+| **FFI 机制全链路**：`.cpp` 作 native-stub / 外部对象 + finalizer / `#borrow` / 错误哨兵 / UTF-8 往返 | `moon test --target native selftest` | **7/7 通过** |
+| Eigen 绑定本体 | `moon test --target native` | 待 Eigen 就位 |
+
+> **Plan A 正式成立**：`.cpp` 确实可以作为 `native-stub` 被 moon 编译、链接并执行。
+
+**本轮"跑起来才发现"的三件事**（读文档推不出来）：
+
+**1. `cc-flags` 与 `stub-cc-flags` 语义不同，且 `/std:` 两处都不能写**
+
+实测命令行：
+
+```
+cl /Fo...obj /I<moon include> /Z7 /c /std:c11 /nologo <stub.cpp> <stub-cc-flags> /MT
+                                 ^^^^^^^^^^  moon 的默认，stub 上也有
+```
+
+- `cc-flags`：**替换**默认值，作用于所有源文件（含 moonc 生成的 C）
+- `stub-cc-flags`：**追加**到默认值之后，只作用于 stub
+
+所以：
+
+- 在 `cc-flags` 写 `/std:c++17` → 生成的 `.c` 文件上两个 `/std:` 并存 → `cl error D8016`
+- 在 `stub-cc-flags` 写 `/std:c++17` → stub 命令行上同样并存 → 同样报 D8016
+
+**结论：`/std:` 两处都不要写**，让 cl 按文件扩展名自选
+（`.c` 走 C，`.cpp` 走 MSVC 默认的 C++14 —— Eigen 3.4 要求 C++14，够用）。
+
+**2. `moonbit_make_external_object` 返回的是 payload 指针，取值时必须解引用**
+
+```cpp
+// 错：把 payload 指针直接当成 C++ 对象指针
+Box *as_box(void *handle) { return static_cast<Box *>(handle); }
+// 对：payload 里存的才是对象指针
+Box *as_box(void *handle) { return *static_cast<Box **>(handle); }
+```
+
+实测症状：`rows()` 返回 **607** —— 那是堆指针的高 4 字节。
+线索是同一文件里 `finalize` 写的是 `delete *slot`（解引用，正确的），**两处不一致**。
+
+`src/eigen_shim.cpp` 里的 `unwrap` 有同样的错误，已一并修正。
+
+**3. `/utf-8` 的判断是对的（而且很关键）**
+
+中文错误信息 `下标越界` 从 C++ 源文件字面量 → `moonbit_make_bytes` →
+MoonBit 侧 `@utf8.decode_lossy` → 与 MoonBit 源码里的同一字面量**逐字符相等**，端到端通过。
+若不加 `/utf-8`，MSVC 会按 GBK 解释源文件，这条测试就会失败。
+
+**另外一条环境经验**：用户机器上是 **Windows PowerShell 5.1**（`powershell.exe`），
+**没有 `pwsh`**。仓库里所有文档与脚本内的提示已统一改为 `powershell -File ...`。
 
 ---
 
@@ -306,7 +356,7 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码 —— 这是官方 agent skill 推�
 | **C++ 工具链** | ❌ **缺**。装了 VS Build Tools 18，但**没有 C++ 工作负载**（找不到 `cl.exe`；`vswhere -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64` 返回空） |
 | LLVM / clang-cl | ❌ 未安装 |
 | MinGW g++ | ✅ 有，但 **MoonBit 官方明确不支持**，用不了 |
-| Eigen | ❌ 未获取（需 `pwsh -File scripts/fetch-eigen.ps1`） |
+| Eigen | ❌ 未获取（需 `powershell -File scripts/fetch-eigen.ps1`） |
 
 缺 C++ 工具链时 moon 的报错（可作判断依据）：
 

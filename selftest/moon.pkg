@@ -26,12 +26,25 @@ options(
 
   link: {
     "native": {
-      // /utf-8 很关键：MSVC 系编译器默认按系统代码页（中文 Windows 上是 GBK）
-      // 解释源文件里的中文字面量。不加这个 flag，stub 里的 "下标越界"
-      // 会以 GBK 字节进入程序，而 MoonBit 侧按 UTF-8 解码 → 得到乱码。
-      // （moon 为生成的 C 代码默认带 /utf-8，但 cc-flags 是"覆盖"语义，
-      //   所以这里必须显式写上。）
-      "cc-flags": "/std:c++17 /EHsc /utf-8",
+      // ── 关于 /std: 的重要教训（实测命令行得出）─────────────────────────
+      // moon 给 stub 的默认命令行里**已经带了 /std:c11**：
+      //   cl /Fo...obj /I<moon include> /Z7 /c /std:c11 /nologo <stub.cpp> <本字段> /MT
+      // 而 cc-flags / stub-cc-flags 的语义不同：
+      //   · cc-flags      —— 替换默认值，作用于所有源文件（含 moonc 生成的 C）
+      //   · stub-cc-flags —— 追加到默认值之后，只作用于 stub
+      // 因此**两处都不能出现 /std:**：
+      //   放 cc-flags      → 生成的 .c 文件会同时拿到 /std:c11 和 /std:c++17，报 D8016
+      //   放 stub-cc-flags → stub 命令行上同样两个 /std: 并存，报 D8016
+      // 正确做法是不指定标准版本，让 cl 按扩展名自己选
+      // （.c 走 C，.cpp 走 MSVC 默认的 C++14 —— Eigen 3.4 要求 C++14，够用）。
+      //
+      // /EHsc  : 开启标准 C++ 异常展开语义（缺了报 warning C4530）
+      // /utf-8 : 让 MSVC 按 UTF-8 解释源文件。不能省 —— 中文 Windows 上默认按
+      //          GBK，stub 里的中文字面量会以 GBK 进入程序，而 MoonBit 侧按
+      //          UTF-8 解码 → 错误信息变乱码。
+      // /bigobj: 模板展开产生大量 COMDAT 段（Eigen 尤其需要）
+      // /O1    : 压低优化级别以控制模板编译时间
+      "stub-cc-flags": "/EHsc /utf-8 /bigobj /O1",
       "cc-link-flags": "",
     },
   },
