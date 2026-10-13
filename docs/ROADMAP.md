@@ -74,7 +74,7 @@
 
 - [x] ~~`scripts/demo.ps1` / `scripts/demo.sh`~~ → ✅ `demo.ps1` 8 步全过（`spike.ps1` 为兼容薄壳）；日志落在 `demo/out/`
 - [ ] 终端录屏 / GIF（单人项目缺"团队故事"，靠演示直观度补）
-- [ ] **在干净目录**重新 clone → 按 README 步骤复现成功（这是"可复现"的硬证据）
+- [ ] **在干净目录**重新 clone → 按 README 步骤复现 —— ⚠️ **10/13 试过一次，失败**：卡在 Eigen 下载阶段（`git clone` 没有超时设置，网络卡住时会无限等待，实测 7 分钟零字节）。待给 `fetch-eigen.ps1` 的 clone 加上低速超时（`-c http.lowSpeedLimit=1000 -c http.lowSpeedTime=30`）后重试
 - [x] ~~提交验收材料~~ → ✅ 代码 + README + 测试 + [申报书](../submission/项目申报书.md)
 - [ ] 报名季度评选
 
