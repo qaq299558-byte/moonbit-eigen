@@ -25,7 +25,9 @@ match a.solve(b) {
 | 部分 | 状态 |
 |---|---|
 | MoonBit API 层、FFI 声明、3 个示例 | ✅ `moon check --target native` 通过（0 errors） |
-| **FFI 机制全链路**：`.cpp` 作 native-stub、外部对象 + finalizer、`#borrow` 传参、错误哨兵约定、UTF-8 编码往返 | ✅ `moon test --target native selftest` — **7/7 通过** |
+| **FFI 机制全链路**：`.cpp` 作 native-stub、外部对象 + finalizer、`#borrow` 传参、错误哨兵约定、UTF-8 编码往返 | ✅ `moon test --target native selftest
+# 纯 MoonBit 参考实现自己的测试（不依赖 Eigen）
+moon test --target native reference` — **7/7 通过** |
 | **Eigen 绑定本体**（矩阵运算与错误路径） | ✅ `moon test --target native src` — **18/18 通过** |
 | 三个可运行示例 | ✅ 均 exit 0：解方程得 `x = [0.8, 1.4]`；线性回归精确复原截距 1 / 斜率 2；与纯 MoonBit 实现对拍**最大误差 0** |
 | **ASan（AddressSanitizer）** | ✅ **已接入并实测通过**（Windows/MSVC）：18/18 测试在 ASan 生效下通过，且校验过产物确实引用 `clang_rt.asan`（防假绿）。配方、`0xc0000135` 这个坑与三道断言见 [docs/PITFALLS.md](docs/PITFALLS.md) 第 12 节 |
@@ -91,10 +93,10 @@ Eigen 是 C++ 世界里经过十几年验证的 header-only 线性代数库：
 
 | 语言 | 文件 | 行数 | 占实现代码 |
 |---|---|---|---|
-| **MoonBit（`.mbt`）** | 9 | **1228** | **64%** |
-| C++（`.cpp` / `.hpp`） | 3 | 715 | 36% |
+| **MoonBit（`.mbt`）** | 11 | **1333** | **65%** |
+| C++（`.cpp` / `.hpp`） | 3 | 716 | 35% |
 
-C++ 那 715 行里，大头是"把 Eigen 模板实例化掉 + 逐元素搬运 + 错误哨兵"，
+C++ 那 716 行里，大头是"把 Eigen 模板实例化掉 + 逐元素搬运 + 错误哨兵"，
 它**不包含任何数值算法** —— 算法全在 Eigen 里。
 
 > GitHub 页面顶部的语言彩条按**字节**统计，会把构建脚本（PowerShell / Shell）
@@ -160,6 +162,8 @@ powershell -File scripts/fetch-eigen.ps1          # Windows
 
 # 2) 先验证 C++ 胶水真的被编进来了（一行自检，见 docs/ROADMAP.md 第 1 周）
 moon test --target native selftest
+# 纯 MoonBit 参考实现自己的测试（不依赖 Eigen）
+moon test --target native reference
 moon test --target native src
 
 # 3) 跑示例
@@ -232,11 +236,20 @@ moon test --target native src
 
 ## 示例
 
-`examples/` 下提供（骨架已写，待工具链验证）：
+仓库里的包（每个都是独立可测的单元）：
+
+| 包 | 类型 | 作用 |
+|---|---|---|
+| `src/` | 库 | 绑定的公开 API 层 + FFI 声明层（含 18 个测试） |
+| `reference/` | 库 | **纯 MoonBit 的线性代数参考实现**，零第三方依赖，用作绑定的独立对拍对象（含 6 个测试） |
+| `selftest/` | 库 | FFI 机制自检，不依赖 Eigen，用来独立回答"MoonBit 能不能调用 C++"（含 7 个测试） |
+| `examples/` | 可执行 | 三个示例（解方程 / 线性回归 / 对拍） |
+
+`examples/` 下提供：
 
 - `examples/solve` —— 解线性方程组并打印过程，含错误路径演示（奇异矩阵、维度不匹配）
 - `examples/linreg` —— 用正规方程做一元线性回归（数据由 `y = 2x + 1` 精确生成，结果可手算核对）
-- `examples/crosscheck` —— **对拍**：用独立的纯 MoonBit 三重循环实现校验绑定的结果，
+- `examples/crosscheck` —— **对拍**：用 `reference/` 包里独立的纯 MoonBit 实现校验绑定的结果，
   同时验证行主序契约与数值正确性（原计划的性能对比 `bench` 改为本示例，
   理由见 `examples/crosscheck/moon.pkg` 的注释）
 
@@ -291,7 +304,7 @@ moon test --target native src
 |---|---|
 | ① 以 MoonBit 作为主要实现语言 | C++ 侧只做 MoonBit 无法完成的事（模板实例化 / ABI 归一化 / 生命周期桥接）；错误处理、维度检查、格式化输出、示例、测试全部在 MoonBit 侧。理由与取舍见 [docs/DESIGN.md](docs/DESIGN.md) §2 |
 | ② 仓库公开、连续可追踪的提交 | 每日有意义提交，规范见 [TEAM.md](TEAM.md)；关键决策逐条记入 [docs/DECISIONS.md](docs/DECISIONS.md) |
-| ③ README + 可运行示例 + 必要测试 | 本文件 + `examples/solve` + 共 25 个测试（`src` 18 个含错误路径 + `selftest` 7 个）+ ASan（Windows 用 [scripts/run-asan.ps1](scripts/run-asan.ps1)，Linux 用 [scripts/run-asan.sh](scripts/run-asan.sh)） |
+| ③ README + 可运行示例 + 必要测试 | 本文件 + `examples/solve` + 共 **31** 个测试（`src` 18 个含错误路径 + `selftest` 7 个 + `reference` 6 个）+ ASan（Windows 用 [scripts/run-asan.ps1](scripts/run-asan.ps1)，Linux 用 [scripts/run-asan.sh](scripts/run-asan.sh)） |
 | ④ 本期完成的实质新增工作 | 全部代码为本期新增，见 `git log` |
 | ⑤ 开源许可证 + 说明来源 | MIT + 上方「来源与许可」一节（含 Eigen 的 MPL2） |
 | ⑥ AI 可用，但目标/路径/质量由参赛者掌握 | 每条设计决策都在 [docs/DECISIONS.md](docs/DECISIONS.md) 里记录了理由与出处。**参赛者需在提交前通读全部实现并确认自己掌握它** |

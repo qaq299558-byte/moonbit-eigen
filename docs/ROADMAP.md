@@ -40,13 +40,13 @@
 **目标：证明技术路径可行，而不是写功能。**
 
 - [x] ~~工具链就位~~ → MoonBit `0.1.20261012`/`moonc v0.10.15` + VS Build Tools 18 / MSVC 14.51
-- [x] ~~骨架代码跑通 `moon check`~~ → **0 errors**（覆盖 API 层 + FFI 声明 + 17 个测试 + 3 个示例）
+- [x] ~~骨架代码跑通 `moon check`~~ → **0 errors**（覆盖 API 层 + FFI 声明 + 全部测试 + 3 个示例）
 - [x] ~~`.cpp` 能否作 native-stub~~ → **成立（Plan A）**，`moon test --target native selftest` **7/7 通过**
       → **熔断点解除，不需要切 Plan B**
 - [x] ~~补齐 `scripts/fetch-eigen.sh`~~ → 已就位（含多镜像 + 重试）
 - [ ] 按固定版本获取 Eigen：`powershell -File scripts/fetch-eigen.ps1`（**下一步**）
 - [ ] 实现并跑通 `mb_eigen_shim_probe`（返回 ≥ 17000 即证明 C++17 + Eigen 都进来了）
-- [ ] 跑通 `moon test --target native`（17 个测试全绿）
+- [x] ~~跑通完整测试~~ → ✅ **31 个测试全绿**（src 18 + selftest 7 + reference 6）；注意必须带包名（见 PITFALLS 10.2）
 - [x] ~~**把 ASan 接上**~~ → ✅ **10/13 完成**（Windows/MSVC）：18/18 在 ASan 生效下通过，产物确认引用 `clang_rt.asan`。配方见 docs/PITFALLS.md 第 12 节
       —— 官方明确建议把它作为**第 1 周交付物**而非最后一步，因为
       所有权类 bug 大多"运行时才炸、且不炸在出错点"
@@ -56,7 +56,7 @@
 - [ ] 用真实矩阵替换 probe：`mat_new` / `mat_from_array` / `mat_copy_to` 跑通
 - [ ] 运算打通：加、减、乘、转置、数乘
 - [ ] `solve` / `det` / `norm` / `dot` 打通，含奇异矩阵检测
-- [ ] `eigen_wbtest.mbt` 的 17 个测试全绿（含 5 个错误路径测试）
+- [x] ~~`eigen_wbtest.mbt` 全绿~~ → ✅ **18 个**（含错误路径测试）
 - [ ] 校验 `#borrow` 行为：若崩溃，退回 owned 约定 + 显式 `moonbit_decref`
 - [ ] 记录实测结果到 PITFALLS 第 8 节的待验证清单
 - [ ] **【熔断点】** 10/23：矩阵乘法是否跑通
