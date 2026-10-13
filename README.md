@@ -310,23 +310,26 @@ moon test --target native src
 | 验收要求 | 本项目的落实 |
 |---|---|
 | ① 以 MoonBit 作为主要实现语言 | C++ 侧只做 MoonBit 无法完成的事（模板实例化 / ABI 归一化 / 生命周期桥接）；错误处理、维度检查、格式化输出、示例、测试全部在 MoonBit 侧。理由与取舍见 [docs/DESIGN.md](docs/DESIGN.md) §2 |
-| ② 仓库公开、连续可追踪的提交 | 每日有意义提交，规范见 [TEAM.md](TEAM.md)；关键决策逐条记入 [docs/DECISIONS.md](docs/DECISIONS.md) |
-| ③ README + 可运行示例 + 必要测试 | 本文件 + `examples/solve` + 共 **38** 个测试（`src` 18 个含错误路径 + `selftest` 7 个 + `reference` 13 个）+ ASan（Windows 用 [scripts/run-asan.ps1](scripts/run-asan.ps1)，Linux 用 [scripts/run-asan.sh](scripts/run-asan.sh)） |
-| ④ 本期完成的实质新增工作 | 全部代码为本期新增，见 `git log` |
+| ② 仓库公开、连续可追踪的提交 | 仓库**公开**；**26 个提交**按工作单元拆分（骨架 → 类型检查 → 测试 → ASan → 文档 → 示例 → 对拍），全部为本期完成。⚠️ 早期骨架在**同一个会话内**批量产出（提交时间集中在同一天），这一点已在 [TEAM.md](TEAM.md) 中如实说明，未做任何粉饰；关键决策逐条记入 [docs/DECISIONS.md](docs/DECISIONS.md) |
+| ③ README + 可运行示例 + 必要测试 | 本文件 + **三个可运行示例**（[examples/solve](examples/solve) / [linreg](examples/linreg) / [crosscheck](examples/crosscheck)）+ 共 **38 个测试**（`src` 18 个含错误路径 + `reference` 13 个 + `selftest` 7 个，全部已实测通过）+ ASan（[scripts/run-asan.ps1](scripts/run-asan.ps1) 在 Windows/MSVC 上**已实测生效**；[scripts/run-asan.sh](scripts/run-asan.sh) 为 GCC 语法版本，**尚未在开发机验证**，本机无 Linux 环境） |
+| ④ 本期完成的实质新增工作 | 仓库为本期**新建**：全部 26 个提交都在本期（`0c22fe4` → `4f6604f`，见 `git log`）。没有历史代码，也没有从别处拷贝的实现 |
 | ⑤ 开源许可证 + 说明来源 | MIT + 上方「来源与许可」一节（含 Eigen 的 MPL2） |
 | ⑥ AI 可用，但目标/路径/质量由参赛者掌握 | 每条设计决策都在 [docs/DECISIONS.md](docs/DECISIONS.md) 里记录了理由与出处。**参赛者需在提交前通读全部实现并确认自己掌握它** |
 
-> ⚠️ 本表在 10/28 终报前需按实际完成情况回填（尤其是 ③ 的测试与示例状态）
-> 以及 ④ 的起止 commit 区间。
+> **本表状态（2026-10-13 实测）**：① ② ⑤ ⑥ 已达成；③ 的测试、三个示例与 ASan
+> 均已实测（38/38）；④ 的提交区间为本期全部提交。
+>
+> 终报（10/28）前若继续开发（候选：特征值与 SVD/QR、Linux 构建、ASan 接入 CI），
+> 需同步更新本表与上方的「项目状态」。
 
 ## 路线图
 
 - [x] 选题论证（对比 CLI11 / toml++ / Eigen，见 PITFALLS §0）
 - [x] 接口契约 + 类型映射表 + 仓库骨架
 - [x] **W1**：工具链穿刺 —— `.cpp` 能否作为 native-stub + ASan 接线
-- [ ] **W2**：胶水层与 MoonBit API 打通并配齐单元测试
-- [ ] **W3**：示例、性能对比、文档完善
-- [ ] **W4**：演示脚本、验收材料
+- [x] **W2**：胶水层与 MoonBit API 打通并配齐单元测试 —— ✅ `src` 18/18（含错误路径）
+- [x] **W3**：示例、文档完善 —— ✅ 三个示例 + 8 份文档；原计划的性能对比改为「跨语言对拍」（理由见 `examples/crosscheck/moon.pkg` 注释）
+- [x] **W4**：演示脚本、验收材料 —— ✅ `demo.ps1` 8 步全过 + [申报书](submission/项目申报书.md)
 
 ## 许可
 

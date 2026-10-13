@@ -229,7 +229,7 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码 —— 这是官方 agent skill 推�
 
 按优先级排列：
 
-- [ ] `.cpp` 能否作为 `native-stub` 被接受（**决定 Plan A/B**）—— 仍需 C++ 工具链
+- [x] ~~`.cpp` 能否作为 `native-stub` 被接受（**决定 Plan A/B**）~~ → ✅ **成立（Plan A）**，`selftest` 7/7
 - [x] ~~`moonbit.h` 里 `moonbit_make_bytes` 的确切签名~~ → 本机头文件确认：
       `moonbit_bytes_t moonbit_make_bytes(int32_t size, int value)`
 - [x] ~~`MOONBIT_FFI_EXPORT` 的定义~~ → `__declspec(dllexport)`（Windows）/ 空（其他平台）
@@ -237,10 +237,10 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码 —— 这是官方 agent skill 推�
       `void *moonbit_make_external_object(void (*finalize)(void *self), uint32_t payload_size)`；
       注释明确 "finalize MUST NOT drop the container itself"
 - [x] ~~`Moonbit_array_length` / `moonbit_incref` / `moonbit_decref`~~ → 均存在于本机头文件
-- [ ] `#borrow` 用于 `FixedArray[Double]` 参数是否生效、有无崩溃 —— 需运行期验证
-- [ ] Eigen 相对包含路径是否可行 —— 需实际编译
-- [ ] `moon test` 与 `moon run` 在 `cc-link-flags` 为空时是否都正常（issue #637）
-- [ ] 是否需要显式链接 C++ 运行时（当前留空）
+- [x] ~~`#borrow` 用于 `FixedArray[Double]` 参数是否生效、有无崩溃~~ → **生效且稳定**（未退回到 owned 约定）
+- [x] ~~Eigen 相对包含路径是否可行~~ → **可行**，已在 `src/moon.pkg` 生效
+- [x] ~~`moon test` 与 `moon run` 在 `cc-link-flags` 为空时是否都正常（issue #637）~~ → **都正常**（须带包名，见 §10.2）
+- [x] ~~是否需要显式链接 C++ 运行时（当前留空）~~ → **不需要**：MSVC 下留空即可，18/18 通过
 - [x] ~~`@utf8.decode_lossy` 的确切包路径与函数名~~ → 已确认：`BytesView` 入参，已修正调用
 - [x] ~~`FixedArray::make(len, init)` 的签名~~ → 已确认（官方 core 内部即如此使用）
 - [x] ~~`Array::length()`~~ → 已确认；`String::contains` / `String::length` 仍未确认，

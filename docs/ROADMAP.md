@@ -44,8 +44,8 @@
 - [x] ~~`.cpp` 能否作 native-stub~~ → **成立（Plan A）**，`moon test --target native selftest` **7/7 通过**
       → **熔断点解除，不需要切 Plan B**
 - [x] ~~补齐 `scripts/fetch-eigen.sh`~~ → 已就位（含多镜像 + 重试）
-- [ ] 按固定版本获取 Eigen：`powershell -File scripts/fetch-eigen.ps1`（**下一步**）
-- [ ] 实现并跑通 `mb_eigen_shim_probe`（返回 ≥ 17000 即证明 C++17 + Eigen 都进来了）
+- [x] ~~按固定版本获取 Eigen~~ → ✅ `scripts/fetch-eigen.ps1`（三路径 + 版本校验写 SOURCE.txt）
+- [x] ~~`mb_eigen_shim_probe`~~ → ✅ 已跑通并返回预期值，证明 C++17 + Eigen 都进来了
 - [x] ~~跑通完整测试~~ → ✅ **38 个测试全绿**（src 18 + reference 13 + selftest 7）；注意必须带包名（见 PITFALLS 10.2）
 - [x] ~~**把 ASan 接上**~~ → ✅ **10/13 完成**（Windows/MSVC）：18/18 在 ASan 生效下通过，产物确认引用 `clang_rt.asan`。配方见 docs/PITFALLS.md 第 12 节
       —— 官方明确建议把它作为**第 1 周交付物**而非最后一步，因为
@@ -53,29 +53,29 @@
 
 ### W2（10/20–10/26）胶水层 + MoonBit API + 测试
 
-- [ ] 用真实矩阵替换 probe：`mat_new` / `mat_from_array` / `mat_copy_to` 跑通
-- [ ] 运算打通：加、减、乘、转置、数乘
-- [ ] `solve` / `det` / `norm` / `dot` 打通，含奇异矩阵检测
+- [x] ~~用真实矩阵替换 probe~~ → ✅ `mat_new` / `mat_from_array` / `mat_copy_to` 已跑通
+- [x] ~~运算打通：加、减、乘、转置、数乘~~ → ✅ 已完成
+- [x] ~~`solve` / `det` / `norm` / `dot` 打通，含奇异矩阵检测~~ → ✅ 已完成，奇异矩阵返回 Err 而非崩溃
 - [x] ~~`eigen_wbtest.mbt` 全绿~~ → ✅ **18 个**（含错误路径测试）
-- [ ] 校验 `#borrow` 行为：若崩溃，退回 owned 约定 + 显式 `moonbit_decref`
-- [ ] 记录实测结果到 PITFALLS 第 8 节的待验证清单
-- [ ] **【熔断点】** 10/23：矩阵乘法是否跑通
+- [x] ~~校验 `#borrow` 行为~~ → ✅ 生效、未崩溃（`FixedArray[Double]` 参数正常）
+- [x] ~~记录实测结果到 PITFALLS 第 8 节~~ → ✅ 已逐条回填
+- [x] ~~**【熔断点】** 10/23：矩阵乘法是否跑通~~ → ✅ 已跑通，熔断点解除
 
 ### W3（10/27–10/30 前半）示例 + 文档
 
-- [ ] `examples/solve`（解方程组）
-- [ ] `examples/linreg`（一元线性回归，展示真实用途）
-- [ ] `examples/crosscheck`（与纯 MoonBit 三重循环实现对拍，验证行主序契约）
-- [ ] 补齐 `docs/DESIGN.md`（ABI 边界为什么这样切）
-- [ ] README 补齐实测数据（把"接口契约"改写成"已验证可用"）
-- [ ] **【熔断点】** 10/27：示例与测试是否就绪
+- [x] ~~`examples/solve`~~ → ✅ 解方程组 + 错误路径演示
+- [x] ~~`examples/linreg`~~ → ✅ 一元线性回归（精确复原截距 1 / 斜率 2）
+- [x] ~~`examples/crosscheck`~~ → ✅ **5 组对拍**：乘法 0、解方程 2.2e-16 / 1.1e-16、行列式、奇异矩阵判定
+- [x] ~~补齐 `docs/DESIGN.md`~~ → ✅ 已写（ABI 边界为什么这样切，9 节）
+- [x] ~~README 补齐实测数据~~ → ✅ 全部为已验证数据（38/38、8 步演示、5 组对拍）
+- [x] ~~**【熔断点】** 10/27：示例与测试是否就绪~~ → ✅ 已就绪，熔断点解除
 
 ### W4（10/30–10/31）演示与验收
 
-- [ ] `scripts/demo.ps1` / `scripts/demo.sh` 一键复现脚本（输出与日志落在 `demo/out/`）
+- [x] ~~`scripts/demo.ps1` / `scripts/demo.sh`~~ → ✅ `demo.ps1` 8 步全过（`spike.ps1` 为兼容薄壳）；日志落在 `demo/out/`
 - [ ] 终端录屏 / GIF（单人项目缺"团队故事"，靠演示直观度补）
 - [ ] **在干净目录**重新 clone → 按 README 步骤复现成功（这是"可复现"的硬证据）
-- [ ] 提交验收材料：代码 + README + 测试 + 演示说明
+- [x] ~~提交验收材料~~ → ✅ 代码 + README + 测试 + [申报书](../submission/项目申报书.md)
 - [ ] 报名季度评选
 
 ---
