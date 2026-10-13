@@ -305,3 +305,51 @@ Finished. moon: ran 3 tasks, now up to date (1 warnings, 0 errors)
 ```
 Windows native backend requires MSVC Build Tools with C++ tools and Windows SDK
 ```
+
+---
+
+## D14 · 2026-10-13 · 用 selftest 包把两件风险解耦
+
+**问题**：本项目的技术风险其实是**两件独立的事**：
+
+- **A**：MoonBit 的 native FFI 机制是否可用 —— `.cpp` 能否作 native-stub、
+  `#borrow` 是否生效、`moonbit_make_external_object` 的 finalizer 会不会跑、
+  `moonbit_make_bytes` + `@utf8.decode_lossy` 的编码往返是否正确；
+- **B**：Eigen 这个具体第三方库能否编译链接。
+
+如果只做 `src/` 一个包，A 和 B 会**耦合**在一起：本机网络不稳、Eigen 可能下不下来，
+于是连 A 也验证不了 —— 而 A 的结论（决定 Plan A/B）本来与 Eigen 毫无关系。
+
+**决策**：新增 `selftest/` 包，**零第三方依赖**，只用 C++ 标准库，
+刻意复刻 `src/eigen_shim.cpp` 的全部关键机制（extern C 导出 / 外部对象 + finalizer /
+`#borrow` 传参 / 错误哨兵约定 / UTF-8 编码往返）。
+
+**收益**：
+- 只要 C++ 工具链就位，**不需要网络、不需要 Eigen**，就能拿到 Plan A/B 的结论；
+- 7 个测试里包含一条"500 次创建外部对象"的压力用例，
+  专门用于暴露引用计数/finalizer 约定用错时的崩溃或泄漏；
+- 一条端到端编码测试：把 C++ 源文件里的中文字面量与 MoonBit 源码里的同一字面量相比，
+  任何一环编码错都会失败。
+
+### 顺带发现的一个编码隐患
+
+写上面那条编码测试时意识到：**MSVC 系编译器默认按系统代码页解释源文件**
+（中文 Windows 上是 GBK）。如果不加 `/utf-8`，stub 里的中文错误信息会以 GBK
+字节进入程序，而 MoonBit 侧按 UTF-8 解码 → 用户看到乱码。
+
+moon 给**生成的 C 代码**默认带 `/utf-8`，但 `cc-flags` 是"**覆盖**"语义 ——
+我在 `src/moon.pkg` 里写了 `cc-flags`，很可能把默认的 `/utf-8` 覆盖掉了。
+
+**已在 `src/moon.pkg` 与 `selftest/moon.pkg` 的 cc-flags 里显式补上 `/utf-8`。**
+
+### 其他本轮的工程改进
+
+- **`scripts/fetch-eigen.ps1` 加了多镜像 + 重试**：按 GitLab 官方 → GitHub 镜像 →
+  Gitee 镜像的顺序尝试，每个源重试 3 次并递增等待，每次尝试前清理半成品目录。
+  原因是实测本机到 gitlab.com / github.com 的连接不稳定（`git push` 都断过一次）。
+- **`scripts/spike.ps1` 重排了步骤**：把 selftest（Step 3）放在获取 Eigen（Step 4）**之前**，
+  保证最关键的结论最早拿到，不被网络问题挡住。
+- **脚本语法校验的教训**：沙箱处于 ConstrainedLanguage（`&` 连解析都过不去）、
+  且禁止命名管道（bash 报 `couldn't create signal pipe`），所以无法在沙箱内真正校验脚本。
+  退而求其次用"引号/大括号配平"检查，但要注意**按 UTF-8 读取** ——
+  用默认编码读会把中文拆坏，产生大量误报（我自己就被误报了一次）。

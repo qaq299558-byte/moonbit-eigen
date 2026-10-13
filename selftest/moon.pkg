@@ -1,0 +1,38 @@
+// selftest/moon.pkg —— FFI 机制自检包
+//
+// 为什么要单独搞一个自检包？
+//
+// 本项目的技术风险其实是**两件独立的事**：
+//   A. MoonBit 的 native FFI 机制能不能用 —— .cpp 能否作 native-stub、
+//      #borrow 是否生效、moonbit_make_external_object 的 finalizer 会不会跑、
+//      moonbit_make_bytes + @utf8.decode_lossy 的编码往返是否正确；
+//   B. 具体某个第三方库（Eigen）能不能编译链接。
+//
+// 如果只做 src/ 那一个包，A 和 B 会耦合在一起：Eigen 下载不下来（本机网络不稳），
+// 就连 A 也验证不了。这个包把 A 单独拎出来，**不需要任何第三方依赖、不需要网络**，
+// 只要 C++ 工具链就位就能给出 A 的结论。
+//
+// 如果 A 失败，那么 Plan A/B 的判定与 Eigen 无关，可以直接下结论。
+
+import {
+  "moonbitlang/core/builtin",
+  "moonbitlang/core/encoding/utf8",
+}
+
+options(
+  "native-stub": [ "smoke_stub.cpp" ],
+
+  targets: { "smoke_ffi.mbt": [ "native" ] },
+
+  link: {
+    "native": {
+      // /utf-8 很关键：MSVC 系编译器默认按系统代码页（中文 Windows 上是 GBK）
+      // 解释源文件里的中文字面量。不加这个 flag，stub 里的 "下标越界"
+      // 会以 GBK 字节进入程序，而 MoonBit 侧按 UTF-8 解码 → 得到乱码。
+      // （moon 为生成的 C 代码默认带 /utf-8，但 cc-flags 是"覆盖"语义，
+      //   所以这里必须显式写上。）
+      "cc-flags": "/std:c++17 /EHsc /utf-8",
+      "cc-link-flags": "",
+    },
+  },
+)
