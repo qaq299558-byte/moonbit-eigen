@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
-# scripts/build-shim.sh —— Plan B：把 C++ 胶水预编译成目标文件（Linux / macOS）
+# scripts/build-shim.sh —— Plan B：在 moon 之外预编译 C++ 胶水（Linux / macOS）
 #
-# 与 scripts/build-shim.ps1 等价。使用时机与完整步骤见 docs/PLAN_B.md。
-#
-# 用法：
-#   bash scripts/build-shim.sh
-#
-# 产出：build/eigen_shim.o
+# ⚠️ 正常情况不需要；且未在开发机验证。
+# 说明：docs/SCRIPTS.md 第 5 节
 
 set -euo pipefail
 

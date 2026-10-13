@@ -260,6 +260,9 @@ moon test --target native src
 | [docs/TYPE_MAP.md](docs/TYPE_MAP.md) | **MoonBit ↔ C++ 类型与内存映射表**（本项目最有复用价值的部分） |
 | [docs/PITFALLS.md](docs/PITFALLS.md) | 踩坑记录、已知 issue、待验证清单 |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | 里程碑、熔断点、降级阶梯、任务分解 |
+| [docs/SCRIPTS.md](docs/SCRIPTS.md) | `scripts/` 下每个脚本的作用、平台、实测状态与设计理由 |
+| [docs/DESIGN.md](docs/DESIGN.md) | ABI 边界为什么这样切 |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | 逐条设计决策（含日期与理由） |
 
 ## 对照验收标准
 

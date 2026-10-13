@@ -1,18 +1,7 @@
-﻿# scripts/spike.ps1 —— 一键技术穿刺（Windows）
+﻿# scripts/spike.ps1 —— 环境自检（6 步）
 #
-# 目的：把 docs/ROADMAP.md 第 1 周的检查项压缩成一条命令，并对熔断点给出判定结论。
-#
-# 步骤顺序是**刻意设计**的：
-#   1. 工具链
-#   2. moon check（纯类型检查，不需要 C 编译器）
-#   3. **selftest 自检包** ← 这一步给出 "Plan A 是否成立" 的结论，
-#                            而且**不需要 Eigen**（本机网络不稳，先拿到最关键的结论）
-#   4. 获取 Eigen
-#   5. 完整测试（含 Eigen）
-#   6. 结论
-#
-# 用法：
-#   powershell -File scripts/spike.ps1
+# 工具链 → moon check → selftest → Eigen → 完整测试 → 结论。
+# 说明：docs/SCRIPTS.md 第 2 节
 
 $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $PSScriptRoot

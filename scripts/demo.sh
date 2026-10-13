@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 # scripts/demo.sh —— 一键复现演示（Linux / macOS）
 #
-# 与 scripts/demo.ps1 等价。官方验收要求"可复现的演示说明"，
-# 这个脚本就是那句话的可执行版本。
-#
-# 用法：
-#   bash scripts/demo.sh
+# ⚠️ 未在开发机验证（本项目在 Windows 上开发）。
+# 说明：docs/SCRIPTS.md 第 3 节
 
 set -euo pipefail
 

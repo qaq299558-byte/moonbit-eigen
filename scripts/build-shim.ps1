@@ -1,29 +1,7 @@
-﻿# scripts/build-shim.ps1 —— Plan B：把 C++ 胶水预编译成目标文件（Windows）
+﻿# scripts/build-shim.ps1 —— Plan B：在 moon 之外预编译 C++ 胶水（Windows）
 #
-# 什么时候需要它？
-#   当 src/moon.pkg 的 "native-stub": ["eigen_shim.cpp"]（Plan A）失败时。
-#   官方只把 native-stub 定义为 "C stub source files"，对 .cpp 无明文承诺；
-#   生态里唯一的 C++ 先例（illusory0x0/qpainter）走的正是这条路：
-#   在 moon 之外先把 C++ 编好，再用 cc-link-flags 链进来。
-#   完整步骤见 docs/PLAN_B.md。
-#
-# ⚠️ 状态说明（2026-10-13）：**Plan A 已实测成立，因此本脚本不是必需路径。**
-#    它已按本机环境（VS Build Tools 装在 E:\VSBuildTools、cl 不在 PATH 上）
-#    修正并实测可编译通过，作为备用手段保留。
-#
-# 用法：
-#   powershell -ExecutionPolicy Bypass -File scripts\build-shim.ps1
-#   powershell -ExecutionPolicy Bypass -File scripts\build-shim.ps1 -OutDir build
-#
-# 产出：build/eigen_shim.obj
-# 之后把 src/moon.pkg 换成 docs/PLAN_B.md 里给出的 Plan B 版本。
-#
-# 早期版本的三个错误（已修）：
-#   1. 默认 -Cc clang-cl —— 本机没装 LLVM，且 cl.exe 并不在 PATH 上，
-#      于是脚本会误报"未找到编译器"并建议你去装 LLVM（其实 MSVC 已装好）。
-#   2. 直接用 cl.exe —— 不经过 vcvars 的话，cl 找不到标准库头文件。
-#   3. 缺 /utf-8 —— 而 src/eigen_shim.cpp 里有中文字符串，
-#      少了它会按系统代码页解释，错误信息变乱码。
+# ⚠️ 正常情况不需要：Plan A（.cpp 作 native-stub）已实测成立。
+# 说明：docs/SCRIPTS.md 第 5 节
 
 param(
   # 留空 = 自动探测：优先用 vswhere 找到的 MSVC，其次 PATH 上的 cl / clang-cl。

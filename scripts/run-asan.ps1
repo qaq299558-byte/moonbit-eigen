@@ -1,32 +1,7 @@
 ﻿# scripts/run-asan.ps1 —— 用 AddressSanitizer 跑测试（Windows / MSVC）
 #
-# ── 为什么需要它 ────────────────────────────────────────────────────────────
-# 跨语言边界的所有权类 bug（悬垂引用、双重释放、越界写）大多"运行时才炸、
-# 且不炸在出错点"。官方 agent skill 把 ASan 列为第 1 周就该接上的东西。
-#
-# ── 实测出来的完整配方（2026-10-13）─────────────────────────────────────────
-# 1. 往 src/moon.pkg 的 stub-cc-flags 里加 /fsanitize=address
-#    → 插桩后的 .obj 会自动带上 clang_rt.asan 的 default-lib 指令，
-#      因此**不需要**往 cc-link-flags 里加东西
-#      （加了反而会让 link.exe 报 LNK4044「无法识别的选项」）。
-# 2. **必须把 ASan 运行时 DLL 所在目录放进 PATH**，否则测试进程直接
-#    以 0xc0000135（STATUS_DLL_NOT_FOUND）退出 —— 看起来像测试失败，
-#    实际是找不到 clang_rt.asan_dynamic-x86_64.dll。
-#    这个目录就是 cl.exe 自己的目录（vcvars 会把它加进 PATH）。
-# 3. 可选：cc-link-flags 加 /DEBUG 可让 ASan 报告带行列号；
-#    不加会有一条 LNK4302 警告，但功能正常。
-#
-# ── 防"假绿" ────────────────────────────────────────────────────────────────
-# ASan 最危险的失败模式是**没生效却报告成功**。本脚本因此有两道断言：
-#   · 注入后必须真的改动了 moon.pkg（找不到目标字段就直接报错退出）
-#   · 跑完必须确认测试 exe 里引用了 clang_rt.asan，否则判定为假绿并报错
-#
-# 用法：
-#   powershell -ExecutionPolicy Bypass -File scripts\run-asan.ps1
-#
-# 说明：只插桩 C++ 胶水层（src 的 native-stub）。MoonBit 生成的 C 代码
-# 要插桩需改 cc-flags，而 cc-flags 会**替换** moon 的全部默认编译选项，
-# 风险大收益小 —— 本项目真正的风险代码是 FFI 边界上的那层 C++ 胶水。
+# 三道防假绿断言：字段必须存在 → 注入必须改到文件 → 产物必须出现 ASan 符号。
+# 完整配方、两个坑与踩坑记录：docs/SCRIPTS.md 第 4 节、docs/PITFALLS.md 第 12 节
 
 param(
   # 测试哪个包；默认 src（含 Eigen 绑定）

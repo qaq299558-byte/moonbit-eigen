@@ -1,0 +1,18 @@
+# .gitattributes —— 换行符约定
+#
+# 为什么需要它：
+#   · Shell 脚本必须是 LF。若被转成 CRLF，Linux 上第一行会变成
+#     "#!/usr/bin/env bash\r"，内核找不到解释器，脚本直接跑不起来。
+#   · PowerShell 脚本用 CRLF 更符合 Windows 惯例（但 LF 也能跑）。
+#
+# 不加 `* text=auto`：那会在下一次提交时把整个仓库重新规范化，
+# 产生一个巨大的、没有信息量的 diff。这里只精确约束必要的地方。
+
+*.sh   text eol=lf
+*.ps1  text eol=crlf
+
+# 二进制/资源类，不做换行符转换
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.gif  binary

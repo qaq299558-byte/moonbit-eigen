@@ -1,15 +1,7 @@
-﻿# scripts/demo.ps1 —— 一键复现演示（Windows）
+﻿# scripts/demo.ps1 —— 一键复现演示（7 步）
 #
-# 官方验收要求"可复现的演示说明"。这个脚本就是那句话的可执行版本：
-# 在一个干净的 clone 里运行它，应当得到完整、可核对的结果。
-#
-# 用法：
-#   powershell -File scripts/demo.ps1
-#
-# 设计要点：
-#   · 每一步都打印它在做什么（评审要看的是过程，不只是结论）
-#   · 任何一步失败立即停止并给出可操作的提示
-#   · 输出会同时写到 demo/out/ 便于附在提交材料里
+# 类型检查 → 测试 → 三个示例；输出与日志落 demo/out/。
+# 说明：docs/SCRIPTS.md 第 3 节
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot

@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
-# scripts/fetch-eigen.sh —— 按固定版本获取 Eigen（Linux / macOS / CI）
+# scripts/fetch-eigen.sh —— 获取 Eigen 源码（Linux / macOS）
 #
-# 与 scripts/fetch-eigen.ps1 保持同样的版本与目录约定，
-# 这样本地（Windows）与 CI（Linux）拿到的是同一份代码。
-#
-# 用法：
-#   bash scripts/fetch-eigen.sh
-#
-# 依赖：git
+# ⚠️ 未在开发机验证（本项目在 Windows 上开发）。
+# 说明：docs/SCRIPTS.md 第 1 节
 
 set -euo pipefail
 

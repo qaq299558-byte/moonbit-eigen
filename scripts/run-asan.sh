@@ -1,32 +1,8 @@
 #!/usr/bin/env bash
-# scripts/run-asan.sh —— 用 AddressSanitizer / UBSan 跑测试（Linux / macOS，GCC 或 Clang）
+# scripts/run-asan.sh —— 用 ASan/UBSan 跑测试（Linux / macOS，GCC / Clang）
 #
-# ⚠️ 平台说明
-#   · **Windows 上请用 scripts/run-asan.ps1**（已实测通过）。
-#     本项目的开发与验证环境是 Windows + MSVC，那边的配方（含 0xc0000135
-#     这个坑与防假绿断言）见 docs/PITFALLS.md 第 12 节。
-#   · 本脚本是给 Linux/macOS 用的，**在当前开发机上无法验证**（没有可用的
-#     bash 与 GCC 环境）。它的验证状态如实标注为「未验证」。
-#     它被设计成**宁可失败也不假绿**：任何一步对不上就直接报错退出。
-#
-# ── 为什么第 1 周就该有这个 ────────────────────────────────────────────────
-# 跨语言边界的所有权类 bug 大多"运行时才炸、且不炸在出错点"
-# —— 悬垂引用、双重释放、越界写。等末期再补验证网，
-# 积累的 bug 已经互相掩盖，排查成本指数上升。
-#
-# ── 历史教训（这个脚本的前一版会「假绿」）───────────────────────────────────
-# 前一版用 python3 正则替换 src/moon.pkg 里的 cc-flags / cc-link-flags，
-# 但那两个字段**在本仓库里刻意没有设置**（留给 moon 自动发现工具链），
-# 于是替换静默失败，脚本照样报告「sanitizer 运行结束（无输出即无问题）」。
-# **没生效却报告成功，比没有 ASan 更危险。**
-# 本版因此有两道断言：注入必须真的改到文件；产物里必须真的出现 __asan。
-#
-# 用法：
-#   bash scripts/run-asan.sh
-#
-# 实现思路：把 stub-cc-flags 从 MSVC 语法换成 GCC/Clang 语法并加上 sanitizer
-# （MSVC 的 /EHsc /utf-8 在 GCC 上不被识别，必须整体替换）。
-# 生态先例 illusory0x0/qpainter 用的正是 "-fsanitize=address -fsanitize=undefined"。
+# ⚠️ 未在开发机验证（本项目在 Windows 上开发）。宁可失败也不假绿。
+# 说明：docs/SCRIPTS.md 第 4 节
 
 set -euo pipefail
 

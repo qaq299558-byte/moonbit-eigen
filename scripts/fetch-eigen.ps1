@@ -1,31 +1,7 @@
-﻿# scripts/fetch-eigen.ps1 —— 按固定版本获取 Eigen（Windows）
+﻿# scripts/fetch-eigen.ps1 —— 获取 Eigen 源码（Windows）
 #
-# ── 三条路径的由来（全部来自实测，不是推测）────────────────────────────────
-#
-# 实测网络（中国大陆，无代理）：
-#   · gitlab.com（Eigen 官方仓库）      —— 连不上：Connection reset / 30 秒超时
-#   · github.com 经 git 协议            —— **可以连**（能读到 ref 列表）
-#   · github.com 经 Invoke-WebRequest   —— 连不上（archive/ 会 302 到
-#                                          codeload.github.com，那个域名不通）
-#   · gitee.com/mirrors/eigen          —— **是另一个项目**（Artsy 的 iOS 应用），
-#                                          不是 C++ 的 Eigen，不能用
-#
-# 因此路径按"实测成功率"排序：
-#   路径 A —— git clone GitLab 官方 tag（官方源；CI 与非受限网络走这条）
-#   路径 B —— git clone GitHub 镜像的 master（★ 受限网络下最可能成功，
-#              因为 git 协议到 github.com 已被实测证明可达）
-#   路径 C —— GitHub 指定 commit 的源码归档 zip（普通 HTTPS，
-#              适合"git 被封但 HTTPS 通"的网络；已强制 TLS 1.2）
-#
-# 任一条成功即可。成功后都会：
-#   1. 校验 Eigen/Dense 存在（并确认内容确实是 Eigen 的 Dense 头）
-#   2. **读出真实版本号并打印**（解析 Macros.h，不假设）
-#   3. 写 SOURCE.txt 记录来源、锁定方式、实际 commit 与版本
-#
-# 用法：
-#   powershell -ExecutionPolicy Bypass -File scripts\fetch-eigen.ps1
-#
-# 依赖：PowerShell 5.1+。路径 C 只用 Invoke-WebRequest + Expand-Archive。
+# 三条路径任一条成功即可：GitLab 官方 tag → GitHub 镜像 → GitHub commit 归档。
+# 理由、选源教训与版本说明：docs/SCRIPTS.md 第 1 节
 
 param(
   # 路径 A 使用的 GitLab tag
