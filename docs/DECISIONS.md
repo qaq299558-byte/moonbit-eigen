@@ -296,7 +296,7 @@ $ moon check --target native
 Finished. moon: ran 3 tasks, now up to date (1 warnings, 0 errors)
 ```
 
-**全部 MoonBit 代码已通过类型检查**（API 层 + FFI 声明 + 17 个测试 + 3 个示例）。
+**全部 MoonBit 代码已通过类型检查**（API 层 + FFI 声明 + 17 个测试 + 3 个示例；该数字是当时的规模，现已增至 38 个）。
 剩余未验证的**只有 C++ 侧**，而它卡在一件明确的事上：
 本机装了 VS Build Tools 18，但**没有 C++ 工作负载**
 （`vswhere -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64` 返回空，
