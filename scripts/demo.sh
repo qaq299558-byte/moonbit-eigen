@@ -54,6 +54,9 @@ run moon run examples/solve --target native
 step 6 "运行示例：一元线性回归"
 run moon run examples/linreg --target native
 
+step 7 "运行示例：与纯 MoonBit 实现对拍"
+run moon run examples/crosscheck --target native
+
 echo
 echo "演示完成，全部步骤成功。"
 echo "日志已保存：$LOG_FILE"

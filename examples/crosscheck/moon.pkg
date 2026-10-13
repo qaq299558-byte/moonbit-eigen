@@ -1,0 +1,15 @@
+// examples/crosscheck/moon.pkg
+//
+// 对拍示例：用一份独立的、纯 MoonBit 的三重循环实现，去校验绑定返回的结果。
+//
+// 为什么把原计划的 `bench` 换成 `crosscheck`？
+//   · 计时需要 std::time 之类的 API，属于"未验证符号"，会扩大风险面；
+//   · 而对拍不需要任何新 API，且验证价值更高 ——
+//     它独立地检查了数据搬运（行主序契约）与乘法结果，
+//     这是跨语言绑定最容易出错、也最难靠单元测试发现的地方。
+
+import {
+  "moonbit-eigen/src" @eigen,
+}
+
+pkgtype(kind: "executable")

@@ -63,7 +63,7 @@
 
 - [ ] `examples/solve`（解方程组）
 - [ ] `examples/linreg`（一元线性回归，展示真实用途）
-- [ ] `examples/bench`（对比纯 MoonBit 三重循环，展示性能差异）
+- [ ] `examples/crosscheck`（与纯 MoonBit 三重循环实现对拍，验证行主序契约）
 - [ ] 补齐 `docs/DESIGN.md`（ABI 边界为什么这样切）
 - [ ] README 补齐实测数据（把"接口契约"改写成"已验证可用"）
 - [ ] **【熔断点】** 10/27：示例与测试是否就绪
@@ -93,7 +93,7 @@
 | 9 | 校验 `#borrow` 语义并记录结论 | `week2` `spike` | 5 |
 | 10 | `examples/solve` | `week3` `docs` | 7 |
 | 11 | `examples/linreg` | `week3` `docs` | 7 |
-| 12 | `examples/bench`（对比纯 MoonBit 实现） | `week3` `docs` | 7 |
+| 12 | `examples/crosscheck`（与纯 MoonBit 实现对拍） | `week3` `docs` | 7 |
 | 13 | `docs/DESIGN.md` + README 实测数据回填 | `week3` `docs` | 8 |
 | 14 | Linux CI（含 `-lstdc++`） | `week3` `build` | 3 |
 | 15 | 演示脚本 + 录屏 | `week4` `docs` | 10 |

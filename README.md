@@ -163,7 +163,9 @@ moon build --target native
 
 - `examples/solve` —— 解线性方程组并打印过程，含错误路径演示（奇异矩阵、维度不匹配）
 - `examples/linreg` —— 用正规方程做一元线性回归（数据由 `y = 2x + 1` 精确生成，结果可手算核对）
-- `examples/bench` —— 与纯 MoonBit 三重循环实现对比，展示绑定带来的性能差异（**待写**）
+- `examples/crosscheck` —— **对拍**：用独立的纯 MoonBit 三重循环实现校验绑定的结果，
+  同时验证行主序契约与数值正确性（原计划的性能对比 `bench` 改为本示例，
+  理由见 `examples/crosscheck/moon.pkg` 的注释）
 
 ---
 
