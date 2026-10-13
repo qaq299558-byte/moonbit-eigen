@@ -32,7 +32,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $target = Join-Path $repoRoot $Destination
 $targetFull = [System.IO.Path]::GetFullPath($target)
 
-if (Test-Path -LiteralPath (Join-Path $target "Eigen" "Dense")) {
+if (Test-Path -LiteralPath (Join-Path (Join-Path $target "Eigen") "Dense")) {
   Write-Host "Eigen 已存在于 $target，跳过下载。"
   exit 0
 }
@@ -62,10 +62,24 @@ foreach ($src in $sources) {
     }
 
     # --depth 1 + 指定 tag：只取所需版本，减少传输量与超时概率
+    #
+    # ⚠️ 兼容性要点（PowerShell 5.1）：
+    #   1) 这里临时把 ErrorActionPreference 调回 Continue —— 5.1 下把原生命令的
+    #      stderr 用 2>&1 接进管道时，会产生 NativeCommandError，
+    #      若此时是 Stop 会直接抛出终止性错误，脚本就走不到"重试下一个源"的逻辑。
+    #   2) git 失败时不用异常判断，改用 $LASTEXITCODE。
+    $savedEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     & git clone --depth 1 --branch $Ref $src.Url $targetFull 2>&1 |
       ForEach-Object { "      $_" }
+    $cloneExit = $LASTEXITCODE
+    $ErrorActionPreference = $savedEap
 
-    if (Test-Path -LiteralPath (Join-Path $target "Eigen" "Dense")) {
+    if ($cloneExit -ne 0) {
+      Write-Host "      git 退出码 $cloneExit" -ForegroundColor DarkGray
+    }
+
+    if (Test-Path -LiteralPath (Join-Path (Join-Path $target "Eigen") "Dense")) {
       Write-Host "  [成功] $($src.Name)"
       $succeeded = $true
       break

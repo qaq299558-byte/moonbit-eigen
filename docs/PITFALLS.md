@@ -445,3 +445,29 @@ MOONBIT_EXPORT moonbit_string_t moonbit_make_string_raw(int32_t size);
 「我的环境能跑」不等于「用户的环境能跑」。
 已知的环境差异清单：Shell 版本（pwsh vs powershell）、编译器（GCC vs MSVC）、
 操作系统代码页（UTF-8 vs GBK）、网络可达性（GitHub 通 vs 不通）。
+
+**维护提醒**：BOM 很容易被工具改回去。实测发现**用带 UTF-8 无 BOM 语义的编辑器
+（或某些自动写入工具）改完 `.ps1` 之后，BOM 会丢失**，于是 5.1 下又会解析失败。
+改完 `.ps1` 请确认首三字节是 `EF BB BF`：
+
+```powershell
+$b = [System.IO.File]::ReadAllBytes('scripts\fetch-eigen.ps1')
+"{0:X2} {1:X2} {2:X2}" -f $b[0], $b[1], $b[2]   # 应为 EF BB BF
+```
+
+### 9.6 PowerShell 5.1 的 `Join-Path` 只接两个位置参数
+
+`Join-Path $a "b" "c"` 这种三参数写法是 **PowerShell 6+** 才有的
+（PS 6 引入了 `-AdditionalChildPath`）。在 5.1 下会直接报：
+
+```
+Join-Path : 找不到接受实际参数"Dense"的位置形式参数。
+```
+
+**修法**：改成嵌套调用 `Join-Path (Join-Path $a "b") "c"`，
+或者把多级路径合并成一个字符串 `Join-Path $a 'b\c'`。
+
+**顺带修掉的另一个 5.1 坑**：在 5.1 下把原生命令（git）的 stderr 用 `2>&1`
+接进管道会产生 `NativeCommandError`；若此时 `$ErrorActionPreference = 'Stop'`，
+会抛出终止性错误，导致"重试下一个源"的逻辑根本走不到。
+脚本里已改为临时切回 `Continue` + 用 `$LASTEXITCODE` 判断失败。
