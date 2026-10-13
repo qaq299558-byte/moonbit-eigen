@@ -1,0 +1,29 @@
+# MoonBit 构建产物
+target/
+.mooncakes/
+*.mbti
+
+# 第三方 C++ 依赖：用 scripts/fetch-eigen.ps1 / .sh 按固定版本下载，不入库。
+# 官方 agent skill 建议"钉住上游版本 + 可重复脚本"；
+# Eigen 目录树很大（数百个文件），因此选择脚本获取而非直接入库。
+src/third_party/
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+
+# 操作系统
+Thumbs.db
+.DS_Store
+
+# 演示录制产物
+demo/out/
+*.cast
+
+# Plan B 的本地构建产物
+build/
+*.lib
+*.a
+*.obj
+*.o

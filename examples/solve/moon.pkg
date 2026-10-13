@@ -1,0 +1,11 @@
+// examples/solve/moon.pkg
+//
+// 示例是官方验收第 3 条明确要求的"可运行示例"，因此单列一个包。
+//
+// [VERIFY] 同模块内的包导入路径格式需在工具链就绪后确认。
+
+import {
+  "moonbit-eigen/src" @eigen,
+}
+
+pkgtype(kind: "executable")

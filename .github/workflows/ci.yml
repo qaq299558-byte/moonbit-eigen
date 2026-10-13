@@ -1,0 +1,61 @@
+# .github/workflows/ci.yml —— 持续集成
+#
+# 策略（单人项目的省时选择）：
+#   · CI 只跑 ubuntu-latest。Windows 上必须用 MSVC 兼容工具链
+#     （cl.exe / clang-cl.exe，MinGW 被官方排除），在 CI 里配它成本高、
+#     收益低；Windows 的构建说明写进 README，靠本地验证 + 录屏留证。
+#   · Linux 上用 gcc，因此 cc-link-flags 需要 -lstdc++（见 docs/PITFALLS.md）。
+#
+# ⚠️ 未验证：本文件尚未实际跑过。W1 的首要任务之一就是让第一个 CI run 变绿。
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 官方 CI 使用的安装方式（Windows 用 powershell.ps1，Linux 用 unix.sh）
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Verify toolchain
+        run: moon version --all
+
+      # Eigen 不入库，按固定版本获取（与本地脚本保持一致）
+      - name: Fetch Eigen
+        run: |
+          chmod +x scripts/fetch-eigen.sh
+          bash scripts/fetch-eigen.sh
+
+      - name: Check
+        run: moon check --target native
+
+      - name: Test
+        run: moon test --target native
+
+  # 官方 agent skill 建议把 ASan/UBSan 作为第 1 周交付物而非最后一步：
+  # 所有权类 bug 大多"运行时才炸、且不炸在出错点"。
+  # W1 需把下面的步骤改成实际可用的形式（用 scripts/run-asan.sh）。
+  asan:
+    runs-on: ubuntu-latest
+    if: false   # 待 W1 补齐 scripts/run-asan.sh 后启用
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Fetch Eigen
+        run: bash scripts/fetch-eigen.sh
+      - name: Run with ASan/UBSan
+        run: bash scripts/run-asan.sh

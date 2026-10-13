@@ -1,0 +1,55 @@
+// src/moon.pkg —— moonbit-eigen 的包配置
+//
+// 每一条取舍都有出处，详见 docs/PITFALLS.md。
+
+import {
+  // C 侧返回 UTF-8 字节，MoonBit 侧解码。
+  // core 的普通包需要显式 import 才能用 @utf8 别名。
+  "moonbitlang/core/encoding/utf8" @utf8,
+}
+
+options(
+  // ── Plan A：把 C++ 胶水作为 native-stub 交给 moon 编译 ──────────────────
+  // ⚠️ 官方把 native-stub 定义为 "C stub source files"，对 .cpp 没有明文保证。
+  //    这是本项目第 1 周技术穿刺要验证的第一件事。
+  //
+  // Plan B（若 Plan A 失败）：改成用脚本先把 eigen_shim.cpp 编成静态库，
+  //    再用 cc-link-flags 链接进来。唯一的 C++ 真实先例
+  //    （illusory0x0/qpainter）走的就是这条路：
+  //    pre-build + Makefile + "-Lbuild -lqpainter_mbt -lstdc++"。
+  //    代价是多维护一套构建，好处是不依赖未被官方承诺的行为。
+  //    详见 docs/ROADMAP.md 的熔断点。
+  "native-stub": [ "eigen_shim.cpp" ],
+
+  // ── 不用 supported-targets: ["native"] ────────────────────────────────
+  // 官方 agent skill 明确劝阻该写法：它会阻止下游包在其它后端构建。
+  // 正确做法是用 targets 只把 FFI 声明文件限制在 native，
+  // 这样纯 MoonBit 的部分（API 层、格式化、测试）在其它后端仍可编译。
+  targets: {
+    "ffi.mbt": [ "native" ],
+  },
+
+  // ── 编译器配置 ────────────────────────────────────────────────────────
+  // Windows 上 cc 只能是 MSVC 兼容驱动（cl.exe / clang-cl.exe）；
+  // MinGW 被官方明确排除（见 docs/PITFALLS.md 第 2 节）。
+  //
+  // 官方 skill 的两条警告及我们的处理：
+  //   · "设置 cc 会禁用 debug 构建的 TCC" —— 接受：Windows 上必须
+  //     显式指定 MSVC 兼容驱动。
+  //   · "带 -I/-L 的 cc-flags 会破坏 Windows 可移植性" —— 因此 cc-flags
+  //     里**不放任何路径**；Eigen 用相对包含引入（见 eigen_shim.hpp），
+  //     从而也不受 issue #586（cc-flags 按 pwd 解析）影响。
+  link: {
+    "native": {
+      "cc": "clang-cl",
+      "stub-cc": "clang-cl",
+      // /EHsc: 开启标准 C++ 异常（Eigen 断言与 std::exception 需要）
+      // /bigobj: Eigen 模板展开产生大量 COMDAT 段，MSVC 系需要它
+      // /O1: 压低优化级别以控制模板编译时间（Eigen 编译慢是本项目主要时间风险）
+      "cc-flags": "/std:c++17 /EHsc /bigobj /O1",
+      // clang-cl 走 MSVC ABI，C++ 运行时随驱动自动链接。
+      // [VERIFY] Linux/CI 上应改为 "-lstdc++"（见 docs/ROADMAP.md 的 CI 任务）。
+      "cc-link-flags": "",
+    },
+  },
+)
