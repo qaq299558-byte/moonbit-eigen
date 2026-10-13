@@ -9,8 +9,10 @@
 //
 // ⚠️ 未编译验证：MoonBit 工具链安装中，本文件尚未通过 moon check。
 //    需要用本机编译器校对的 API（详见 docs/PITFALLS.md 第 8 节）：
-//    FixedArray::from_array、Array::from_fixed_array、Double::round /
-//    to_int / to_double、StringBuilder 的方法名、字符串插值语法。
+//    FixedArray::from_array、Array::from_fixed_array、FixedArray::make、
+//    @utf8.decode_lossy、字符串插值语法。
+//    （曾用到的 Double::round / to_int / to_double 与 StringBuilder
+//      已在 to_string 重构中移除，见 docs/DECISIONS.md D8。）
 
 /// 动态尺寸的双精度矩阵。
 pub struct Matrix {
@@ -71,7 +73,13 @@ pub fn Matrix::from_array(
       "数据长度 \{data.length()} 与 rows*cols = \{rows * cols} 不匹配",
     )
   }
-  let fixed = FixedArray::from_array(data)
+  // 手工搬运，而不是用 FixedArray::from_array：
+  // 后者的名称与签名未经确认，而下面的写法只用 FixedArray::make + 下标赋值
+  // （前者出自官方 C-FFI 黑板报文章，后者是语言基础）。同类取舍见 DECISIONS D8。
+  let fixed = FixedArray::make(data.length(), 0.0)
+  for i = 0; i < data.length(); i = i + 1 {
+    fixed[i] = data[i]
+  }
   wrap(mb_eigen_matrix_from_array(rows, cols, fixed, fixed.length()))
 }
 
@@ -116,7 +124,12 @@ pub fn Matrix::to_array(self : Matrix) -> Result[Array[Double], String] {
   if mb_eigen_matrix_copy_to(self.handle, out, n) != 0 {
     return Err(last_error())
   }
-  Ok(Array::from_fixed_array(out))
+  // 同样手工搬运，避免依赖 Array::from_fixed_array。
+  let mut result : Array[Double] = []
+  for i = 0; i < n; i = i + 1 {
+    result.push(out[i])
+  }
+  Ok(result)
 }
 
 // ---------------------------------------------------------------------------
@@ -176,41 +189,27 @@ pub fn Matrix::det(self : Matrix) -> Result[Double, String] {
 // MoonBit 侧确实在提供自己的东西。
 // ---------------------------------------------------------------------------
 
-/// 把矩阵渲染成可读的多行字符串（列对齐）。
+/// 把矩阵渲染成可读的多行字符串。
+///
+/// 刻意只用最基础的字符串拼接与 Show 插值：**不依赖** StringBuilder、
+/// Double::round / to_int / to_double 这类尚未在本机确认的标准库 API。
+/// 在工具链就绪前，把"未验证 API"的面积压到最小是一种工程纪律 ——
+/// 少一个猜错的符号，就少一次编译失败后的返工。
+/// 列对齐的漂亮输出留到 v2（见 docs/ROADMAP.md 第 6 节）。
 pub fn Matrix::to_string(self : Matrix) -> String {
   if self.rows() < 0 {
     return "<无效矩阵: \{last_error()}>"
   }
-  let mut sb = StringBuilder::new()
-  sb.write_string("Matrix(\{self.rows()}x\{self.cols()})")
+  let mut s = "Matrix(\{self.rows()}x\{self.cols()})"
   for i = 0; i < self.rows(); i = i + 1 {
-    sb.write_char('\n')
-    sb.write_string("  [")
+    s = s + "\n  ["
     for j = 0; j < self.cols(); j = j + 1 {
       if j > 0 {
-        sb.write_string(", ")
+        s = s + ", "
       }
-      let v = mb_eigen_matrix_get(self.handle, i, j)
-      sb.write_string(format_double(v))
+      s = s + "\{mb_eigen_matrix_get(self.handle, i, j)}"
     }
-    sb.write_string("]")
+    s = s + "]"
   }
-  sb.to_string()
-}
-
-/// 把 double 格式化成定长小数，便于列对齐。
-fn format_double(v : Double) -> String {
-  let scaled = (v * 1000.0).round()
-  let negative = scaled < 0.0
-  let abs_scaled = if negative { -scaled } else { scaled }
-  let whole = (abs_scaled / 1000.0).to_int()
-  let frac = (abs_scaled - whole.to_double() * 1000.0).to_int()
-  let sign = if negative { "-" } else { "" }
-  if frac < 10 {
-    "\{sign}\{whole}.00\{frac}"
-  } else if frac < 100 {
-    "\{sign}\{whole}.0\{frac}"
-  } else {
-    "\{sign}\{whole}.\{frac}"
-  }
+  s
 }

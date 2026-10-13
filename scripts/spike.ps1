@@ -108,7 +108,7 @@ if ($LASTEXITCODE -ne 0) {
 # ── Step 5：probe 交叉验证 ────────────────────────────────────────────────────
 Section "Step 5/5 构建期自检"
 Write-Host "  mb_eigen_shim_probe 预期 >= 17000（C++17 + Eigen 3.x）"
-Write-Host "  该断言已在 src/eigen_test.mbt 的 'shim probe' 测试中，Step 4 通过即代表它通过。"
+Write-Host "  该断言已在 src/eigen_wbtest.mbt 的 'shim probe' 测试中，Step 4 通过即代表它通过。"
 Ok "见 Step 4 结果"
 
 # ── 结论 ──────────────────────────────────────────────────────────────────────

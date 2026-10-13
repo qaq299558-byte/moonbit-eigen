@@ -1,0 +1,12 @@
+// examples/linreg/moon.pkg
+//
+// 一元线性回归示例：走正规方程 β = (XᵀX)⁻¹ Xᵀ y。
+//
+// 这个示例的意义：它证明本项目不是"把 Eigen 的 API 抄一遍"，
+// 而是真的能让 MoonBit 写出有实际用途的数值代码。
+
+import {
+  "moonbit-eigen/src" @eigen,
+}
+
+pkgtype(kind: "executable")

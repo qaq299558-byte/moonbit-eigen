@@ -159,11 +159,13 @@ moon build --target native
 
 ## 示例
 
-`examples/` 下计划提供（W3 交付，见 [docs/ROADMAP.md](docs/ROADMAP.md)）：
+`examples/` 下提供（骨架已写，待工具链验证）：
 
-- `examples/solve` —— 解线性方程组并打印过程
-- `examples/linreg` —— 用正规方程做一元线性回归（体现"真的能做数值"）
-- `examples/bench` —— 与纯 MoonBit 三重循环实现对比，展示绑定带来的性能差异
+- `examples/solve` —— 解线性方程组并打印过程，含错误路径演示（奇异矩阵、维度不匹配）
+- `examples/linreg` —— 用正规方程做一元线性回归（数据由 `y = 2x + 1` 精确生成，结果可手算核对）
+- `examples/crosscheck` —— **对拍**：用独立的纯 MoonBit 三重循环实现校验绑定的结果，
+  同时验证行主序契约与数值正确性（原计划的性能对比 `bench` 改为本示例，
+  理由见 `examples/crosscheck/moon.pkg` 的注释）
 
 ---
 
@@ -195,6 +197,22 @@ moon build --target native
 | [docs/TYPE_MAP.md](docs/TYPE_MAP.md) | **MoonBit ↔ C++ 类型与内存映射表**（本项目最有复用价值的部分） |
 | [docs/PITFALLS.md](docs/PITFALLS.md) | 踩坑记录、已知 issue、待验证清单 |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | 里程碑、熔断点、降级阶梯、任务分解 |
+
+## 对照验收标准
+
+本赛事的验收标准是**硬性判据**（不是评分维度），逐条对照如下：
+
+| 验收要求 | 本项目的落实 |
+|---|---|
+| ① 以 MoonBit 作为主要实现语言 | C++ 侧只做 MoonBit 无法完成的事（模板实例化 / ABI 归一化 / 生命周期桥接）；错误处理、维度检查、格式化输出、示例、测试全部在 MoonBit 侧。理由与取舍见 [docs/DESIGN.md](docs/DESIGN.md) §2 |
+| ② 仓库公开、连续可追踪的提交 | 每日有意义提交，规范见 [TEAM.md](TEAM.md)；关键决策逐条记入 [docs/DECISIONS.md](docs/DECISIONS.md) |
+| ③ README + 可运行示例 + 必要测试 | 本文件 + `examples/solve` + `src/eigen_wbtest.mbt`（17 个测试，含 5 个错误路径）+ ASan/UBSan（[scripts/run-asan.sh](scripts/run-asan.sh)） |
+| ④ 本期完成的实质新增工作 | 全部代码为本期新增，见 `git log` |
+| ⑤ 开源许可证 + 说明来源 | MIT + 上方「来源与许可」一节（含 Eigen 的 MPL2） |
+| ⑥ AI 可用，但目标/路径/质量由参赛者掌握 | 每条设计决策都在 [docs/DECISIONS.md](docs/DECISIONS.md) 里记录了理由与出处。**参赛者需在提交前通读全部实现并确认自己掌握它** |
+
+> ⚠️ 本表在 10/28 终报前需按实际完成情况回填（尤其是 ③ 的测试与示例状态）
+> 以及 ④ 的起止 commit 区间。
 
 ## 路线图
 

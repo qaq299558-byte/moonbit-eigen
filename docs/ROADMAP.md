@@ -54,7 +54,7 @@
 - [ ] 用真实矩阵替换 probe：`mat_new` / `mat_from_array` / `mat_copy_to` 跑通
 - [ ] 运算打通：加、减、乘、转置、数乘
 - [ ] `solve` / `det` / `norm` / `dot` 打通，含奇异矩阵检测
-- [ ] `eigen_test.mbt` 的 12 个测试全绿（含 5 个错误路径测试）
+- [ ] `eigen_wbtest.mbt` 的 17 个测试全绿（含 5 个错误路径测试）
 - [ ] 校验 `#borrow` 行为：若崩溃，退回 owned 约定 + 显式 `moonbit_decref`
 - [ ] 记录实测结果到 PITFALLS 第 8 节的待验证清单
 - [ ] **【熔断点】** 10/23：矩阵乘法是否跑通
@@ -63,14 +63,14 @@
 
 - [ ] `examples/solve`（解方程组）
 - [ ] `examples/linreg`（一元线性回归，展示真实用途）
-- [ ] `examples/bench`（对比纯 MoonBit 三重循环，展示性能差异）
+- [ ] `examples/crosscheck`（与纯 MoonBit 三重循环实现对拍，验证行主序契约）
 - [ ] 补齐 `docs/DESIGN.md`（ABI 边界为什么这样切）
 - [ ] README 补齐实测数据（把"接口契约"改写成"已验证可用"）
 - [ ] **【熔断点】** 10/27：示例与测试是否就绪
 
 ### W4（10/30–10/31）演示与验收
 
-- [ ] `demo/demo.ps1` / `demo/demo.sh` 一键复现脚本
+- [ ] `scripts/demo.ps1` / `scripts/demo.sh` 一键复现脚本（输出与日志落在 `demo/out/`）
 - [ ] 终端录屏 / GIF（单人项目缺"团队故事"，靠演示直观度补）
 - [ ] **在干净目录**重新 clone → 按 README 步骤复现成功（这是"可复现"的硬证据）
 - [ ] 提交验收材料：代码 + README + 测试 + 演示说明
@@ -93,7 +93,7 @@
 | 9 | 校验 `#borrow` 语义并记录结论 | `week2` `spike` | 5 |
 | 10 | `examples/solve` | `week3` `docs` | 7 |
 | 11 | `examples/linreg` | `week3` `docs` | 7 |
-| 12 | `examples/bench`（对比纯 MoonBit 实现） | `week3` `docs` | 7 |
+| 12 | `examples/crosscheck`（与纯 MoonBit 实现对拍） | `week3` `docs` | 7 |
 | 13 | `docs/DESIGN.md` + README 实测数据回填 | `week3` `docs` | 8 |
 | 14 | Linux CI（含 `-lstdc++`） | `week3` `build` | 3 |
 | 15 | 演示脚本 + 录屏 | `week4` `docs` | 10 |

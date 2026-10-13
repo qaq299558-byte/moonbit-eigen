@@ -230,6 +230,21 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码 —— 这是官方 agent skill 推�
 - [ ] `moon test` 与 `moon run` 在 `cc-link-flags` 为空时是否都正常（issue #637）
 - [ ] clang-cl 是否需要显式链接 C++ 运行时（当前留空）
 - [ ] `@utf8.decode_lossy` 的确切包路径与函数名
-- [ ] MoonBit 侧 `FixedArray::from_array` / `Array::from_fixed_array` / `Double::round` 等 API 名
-- [ ] `Matrix::to_string` 里 `StringBuilder` 的方法名
+- [ ] `FixedArray::make(len, init)` 的签名（出自官方 C-FFI 黑板报文章，尚未本机确认）
+- [ ] `Array::length()` 与 `String::contains` 是否存在、签名如何
+- [ ] `_wbtest.mbt` 与 `_test.mbt` 的实际可见性差异（见 DECISIONS D9，依据官方文档）
+- [ ] 若将来要加 BlackBox 测试，当前包的别名是否为 `@src`
+- [ ] `Result[T, String]` 作为公开 API 返回类型时的 `match` 写法（本文件按 `Ok(v) => ...` 写）
+
+**已在本轮通过改用基础语法而消除的不确定符号**（见 DECISIONS D8）：
+
+- ✅ ~~`FixedArray::from_array`~~ → 改为 `FixedArray::make` + 下标赋值
+- ✅ ~~`Array::from_fixed_array`~~ → 改为 `Array::push` 循环
+- ✅ ~~`StringBuilder::new / write_string / write_char / to_string`~~ → 改为 `String` 拼接
+- ✅ ~~`Double::round / to_int / to_double`~~ → 随格式化函数一并删除
+
+**当前仍依赖的标准库符号（全部为语言基础或官方文档出现的）**：
+`FixedArray::make`、数组下标读写、`Array::push` / `Array::length`、
+`String` 拼接与 `\{expr}` 插值、`Result` / `Ok` / `Err` / `match`、
+`abort`、`test` 块、`@utf8.decode_lossy`。
 - [ ] 是否需要在 CI（Linux/gcc）上加 `-lstdc++`
