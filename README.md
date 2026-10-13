@@ -18,30 +18,33 @@ match a.solve(b) {
 
 ---
 
-## ⚠️ 项目状态（2026-10-13）
+## 项目状态（2026-10-13）
 
-**MoonBit 侧与 FFI 机制均已实测通过；Eigen 绑定本体待第三方源码就位后验证。**
+**已全部跑通：Eigen 绑定本体、FFI 机制、单元测试与三个可运行示例。**
 
 | 部分 | 状态 |
 |---|---|
-| MoonBit API 层、FFI 声明、17 个单元测试、3 个示例 | ✅ `moon check --target native` 通过（0 errors） |
-| **FFI 机制全链路**：`.cpp` 作 native-stub、外部对象 + finalizer、`#borrow` 传参、错误哨兵约定、UTF-8 编码往返 | ✅ `moon test --target native selftest` **7/7 通过** |
-| Eigen 绑定本体（`src/eigen_shim.cpp`） | ⏳ 待 Eigen 源码就位后 `moon test --target native` |
+| MoonBit API 层、FFI 声明、3 个示例 | ✅ `moon check --target native` 通过（0 errors） |
+| **FFI 机制全链路**：`.cpp` 作 native-stub、外部对象 + finalizer、`#borrow` 传参、错误哨兵约定、UTF-8 编码往返 | ✅ `moon test --target native selftest` — **7/7 通过** |
+| **Eigen 绑定本体**（矩阵运算与错误路径） | ✅ `moon test --target native src` — **18/18 通过** |
+| 三个可运行示例 | ✅ 均 exit 0：解方程得 `x = [0.8, 1.4]`；线性回归精确复原截距 1 / 斜率 2；与纯 MoonBit 实现对拍**最大误差 0** |
 | ASan / UBSan | ⏳ 待接入 |
 
-工具链环境（本机实测）：
+工具链与环境（本机实测）：
 
 ```
-MoonBit  moon 0.1.20261012 / moonc v0.10.15
-C++      VS Build Tools 18 · MSVC 14.51 · E:\VSBuildTools
+MoonBit   moon 0.1.20261012 / moonc v0.10.15
+C++       VS Build Tools 18 · MSVC 14.51 · E:\VSBuildTools
+Eigen     3.3.90（来自 GitHub libigl/eigen 镜像；见下方「来源与许可」的说明）
 ```
 
-关于 FFI 机制的三条实测经验（`cc-flags` 与 `stub-cc-flags` 的语义差异、
-`moonbit_make_external_object` 取值必须解引用、`/utf-8` 的必要性）
-记录在 [docs/PITFALLS.md](docs/PITFALLS.md) 第 8 节。
+几条实测经验记录在 [docs/PITFALLS.md](docs/PITFALLS.md)：
+`cc-flags` 与 `stub-cc-flags` 的语义差异、`moonbit_make_external_object` 取值必须解引用、
+`/utf-8` 的必要性、`dot` 的形状断言 bug、以及"声明了 `native-stub` 的库包需要
+按包名调用 moon"这一行为。
 
-**因此：接口契约由类型系统保证，"月兔能不能调用 C++"这个机制问题已经实测回答，
-但"Eigen 绑定能不能算出正确结果"还没有被验证过。**
+**⚠️ 一个使用注意**：请用 `moon test --target native src`（带包名）而不是
+不带包名的整模块调用，原因见 [docs/PITFALLS.md](docs/PITFALLS.md) 第 10.2 节。
 
 ---
 
@@ -192,8 +195,16 @@ moon build --target native
 
 | 组件 | 许可 | 说明 |
 |---|---|---|
-| **Eigen** | **MPL2**（部分文件为 MPL2 / LGPL3+ 双许可） | Copyright (c) Eigen authors · <https://gitlab.com/libeigen/eigen> |
+| **Eigen** | **MPL2**（部分文件为 MPL2 / LGPL3+ 双许可） | Copyright (c) Eigen authors · 官方仓库 <https://gitlab.com/libeigen/eigen> |
 | **本项目原创代码** | **MIT**（见 [LICENSE](LICENSE)） | MoonBit API 层、胶水层、测试、文档 |
+
+**关于实际使用的 Eigen 版本（如实说明）**：本机实测拿到的是 **3.3.90**，
+不是 3.4.0 正式版 —— 脚本默认走 GitHub 的 `libigl/eigen` 镜像（因为
+`gitlab.com` 在部分网络下不可达），该镜像的 master 版本号是 3.3.90
+（Eigen 3.4 正式发布前的开发版本号）。获取脚本会在成功后**读出并打印
+真实版本号**，并写入 `src/third_party/eigen/SOURCE.txt` 作为凭证。
+本项目用到的 Eigen API 在 3.3 系列均已存在，18/18 测试通过。
+若要严格使用 3.4.0 正式版，请在可访问 GitLab 的网络下走脚本的路径 A。
 
 本项目是**绑定/移植类项目**，按赛事要求说明参考来源如下：
 

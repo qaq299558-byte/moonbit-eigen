@@ -13,6 +13,15 @@ import {
   "moonbitlang/core/encoding/utf8",
 }
 
+// ⚠️ 必须显式声明为库包。
+// 实测：不写 pkgtype 时，moon build --target native 会尝试把本包链接成
+// src.exe，而库包没有 main，导致：
+//     libcmt.lib(exe_main.obj) : error LNK2019: 无法解析的外部符号 main
+//     src.exe : fatal error LNK1120: 1 个无法解析的外部命令
+// 这与 moon issue #637（native 下 run/test 需要互相矛盾的 linker 配置、
+// 报 undefined reference to main）属于同一类问题。
+pkgtype(kind: "library")
+
 options(
   // ── Plan A：把 C++ 胶水作为 native-stub 交给 moon 编译 ──────────────────
   // ⚠️ 官方把 native-stub 定义为 "C stub source files"，对 .cpp 没有明文保证。

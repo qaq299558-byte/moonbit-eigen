@@ -284,15 +284,21 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码 —— 这是官方 agent skill 推�
 `abort`、`test` 块、`@utf8.decode_lossy`。
 - [ ] 是否需要在 CI（Linux/gcc）上加 `-lstdc++`
 
-**✅ 已在本机验证**（moonc v0.10.15 + MSVC 14.51 `cl.exe` / VS Build Tools 18）：
+**✅ 已在本机验证**（moonc v0.10.15 + MSVC 14.51 `cl.exe` / VS Build Tools 18，
+Eigen 源码就位后实测）：
 
 | 验证项 | 命令 | 结果 |
 |---|---|---|
-| MoonBit 类型检查（API 层 + FFI 声明 + 17 个测试 + 3 个示例） | `moon check --target native` | **0 errors** |
+| MoonBit 类型检查（API 层 + FFI 声明 + 测试 + 3 个示例） | `moon check --target native` | **0 errors** |
 | **FFI 机制全链路**：`.cpp` 作 native-stub / 外部对象 + finalizer / `#borrow` / 错误哨兵 / UTF-8 往返 | `moon test --target native selftest` | **7/7 通过** |
-| Eigen 绑定本体 | `moon test --target native` | 待 Eigen 就位 |
+| **Eigen 绑定本体**（矩阵运算、错误路径） | `moon test --target native src` | **18/18 通过** |
+| 三个可运行示例 | `moon run examples/solve --target native` 等 | **全部 exit 0，输出正确** |
 
 > **Plan A 正式成立**：`.cpp` 确实可以作为 `native-stub` 被 moon 编译、链接并执行。
+> **整个绑定已经真正跑通**：解方程得到 `x = [0.8, 1.4]`、线性回归精确复原
+> 截距 1 / 斜率 2、与纯 MoonBit 实现对拍最大误差 0。
+
+**实测用的 Eigen 版本是 3.3.90，不是 3.4.0** —— 见第 10.3 节，这一点文档里必须如实写。
 
 **本轮"跑起来才发现"的三件事**（读文档推不出来）：
 
@@ -471,3 +477,88 @@ Join-Path : 找不到接受实际参数"Dense"的位置形式参数。
 接进管道会产生 `NativeCommandError`；若此时 `$ErrorActionPreference = 'Stop'`，
 会抛出终止性错误，导致"重试下一个源"的逻辑根本走不到。
 脚本里已改为临时切回 `Continue` + 用 `$LASTEXITCODE` 判断失败。
+
+---
+
+## 10. Eigen 绑定跑通后才暴露的问题（实测记录）
+
+### 10.1 真 bug：`dot` 只查了「元素个数」，没查「形状」
+
+`moon test --target native src` 第一次跑就崩了：
+
+```
+Assertion failed: aLhs.rows() == aRhs.rows() && aLhs.cols() == aRhs.cols(),
+file .../Eigen/src/Core/CwiseBinaryOp.h, line 110
+测试进程退出码 0xc0000409
+```
+
+**原因**：`mat_dot` 原先用 `cwiseProduct(b).sum()` 实现，只检查了
+`size()` 相等。但 **Eigen 的逐元素二元运算断言的是"形状完全相同"**，
+而 `1×3` 与 `3×1` 元素个数相同、形状不同 —— 于是断言触发，进程崩溃。
+
+**修法**（两侧都改）：
+
+- `src/eigen_shim.cpp`：不再用 `cwiseProduct`，改成手工按存储顺序遍历求和；
+  并明确契约：形状相同 → 逐元素内积；两者都是向量且元素个数相同 → 向量点积；
+  其它 → 明确报错，而不是触发断言。
+- `src/eigen.mbt`：`Matrix::dot` 用同一套规则在 MoonBit 侧先拦一道。
+
+**顺带补了一条测试**：`2×3` 与 `3×2`（元素个数相同、形状不同、都不是向量）
+必须返回 `Err` 而不是崩溃。
+
+> **教训**：跨语言边界上的"参数校验"不能想当然。
+> `size()` 相等不等于形状相容 —— 而**断言失败是进程级崩溃**，
+> 不是可捕获的异常，在 FFI 场景下尤其致命。
+
+### 10.2 moon 行为：声明了 `native-stub` 的**库包**会被尝试链接成 exe
+
+`moon build --target native`（以及整模块的 `moon test --target native`）报：
+
+```
+正在创建库 ...\build\src\src.lib ...
+libcmt.lib(exe_main.obj) : error LNK2019: 无法解析的外部符号 main
+...\build\src\src.exe : fatal error LNK1120: 1 个无法解析的外部命令
+```
+
+**对照实验**（本机实测）：
+
+| 包 | `moon build --target native <包>` |
+|---|---|
+| 新建的纯库包 `probe`（**无 stub**，也不写 `pkgtype`） | ✅ 只产出 `.lib`，正常 |
+| `src` / `selftest`（**有 `native-stub`**） | ❌ 还要链接 `.exe` → `LNK2019: main` |
+
+**结论**：触发条件是 `native-stub`，与 `pkgtype` 无关
+（显式写 `pkgtype(kind: "library")` 也无效）。
+**规避方式：调用时显式指定包名** ——
+`moon test --target native src` / `... selftest` 只走 test 目标，不会踩到。
+
+CI 与文档里的命令因此全部改为带包名的形式。
+
+### 10.3 ⚠️ 实际用的 Eigen 是 3.3.90，不是 3.4.0
+
+`libigl/eigen`（GitHub 上可用且自述为"最新稳定版镜像"）的 master，
+其 `Macros.h` 里是 `EIGEN_WORLD_VERSION 3 / MAJOR 3 / MINOR 90`，
+即 **3.3.90**（Eigen 3.4 正式发布前的开发版本号），并非 3.4.0 正式版。
+
+本文档与 README 早期写的"Eigen 3.4.0"是**当时的预期，不是实测结果**。
+获取脚本现在会在成功后**读出并打印真实版本号**，并写入
+`src/third_party/eigen/SOURCE.txt`，避免再出现"文档写 A、实际是 B"。
+
+对本项目的影响：所用 API（`partialPivLu` / `allFinite` / `determinant` /
+`norm` / `MatrixXd` 等）在 3.3 系列均已存在，18/18 测试通过。
+若要严格使用 3.4.0 正式版，需在能访问 GitLab 的网络下走路径 A
+（`git clone --branch 3.4.0`）。
+
+### 10.4 获取 Eigen 的网络现实（中国大陆，无代理）
+
+| 源 | 实测结果 |
+|---|---|
+| `gitlab.com/libeigen/eigen`（官方） | ❌ Connection reset / 30 秒超时 |
+| `github.com/eigenteam/eigen-git-mirror` | ⚠️ 能连，但**标签只到 3.3.7**（自述 DEPRECATED，2022 停更） |
+| `gitee.com/mirrors/eigen` | ❌ **是另一个项目**（Artsy 的 iOS 应用），不是 C++ 的 Eigen |
+| `github.com/libigl/eigen`（git clone） | ✅ 可用（单 master 分支，无 tag） |
+| GitHub `archive/<sha>.zip` | ⚠️ 时通时断（会 302 到 `codeload.github.com`） |
+
+**教训**：挑第三方源**必须验证内容，不能只看名字** ——
+Gitee 那个 `mirrors/eigen` 就是活生生的例子。现在脚本会校验
+`Eigen/Dense` 是否存在，并解析 `Macros.h` 打印真实版本。

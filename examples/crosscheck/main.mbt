@@ -110,7 +110,7 @@ fn main {
     if ad > max_diff {
       max_diff = ad
     }
-    println("  [{i}] 绑定=\{c_bound[i]}  参考=\{c_ref[i]}")
+    println("  [\{i}] 绑定=\{c_bound[i]}  参考=\{c_ref[i]}")
   }
 
   println("")

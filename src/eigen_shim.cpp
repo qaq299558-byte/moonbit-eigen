@@ -288,11 +288,38 @@ double mat_dot(const MatrixBox *a, const MatrixBox *b) noexcept {
     set_error("运算涉及无效矩阵");
     return 0.0;
   }
-  if (a->mat.size() != b->mat.size()) {
-    set_error("点积要求两个矩阵元素个数相同");
+
+  const Eigen::Index na = a->mat.size();
+  const Eigen::Index nb = b->mat.size();
+  if (na != nb) {
+    set_error("内积要求两个矩阵元素个数相同");
     return 0.0;
   }
-  return a->mat.cwiseProduct(b->mat).sum();
+
+  // ⚠️ 不要用 cwiseProduct().sum()：Eigen 的逐元素二元运算会断言
+  //    「形状必须完全相同」（CwiseBinaryOp.h 里的
+  //    aLhs.rows() == aRhs.rows() && aLhs.cols() == aRhs.cols()），
+  //    而 1×3 与 3×1 元素个数相同、形状不同 —— 实测就会在这里崩。
+  // 这里改成手工按存储顺序配对求和，既避开了断言，也把语义说清楚：
+  //   形状相同 → 正常的逐元素内积
+  //   两者都是向量（行向量或列向量）且元素个数相同 → 向量点积
+  //   其它情况 → 明确报错，而不是触发断言
+  const bool same_shape =
+      (a->mat.rows() == b->mat.rows() && a->mat.cols() == b->mat.cols());
+  const bool a_is_vector = (a->mat.rows() == 1 || a->mat.cols() == 1);
+  const bool b_is_vector = (b->mat.rows() == 1 || b->mat.cols() == 1);
+  if (!same_shape && !(a_is_vector && b_is_vector)) {
+    set_error("内积要求形状相同，或两者都是元素个数相同的向量");
+    return 0.0;
+  }
+
+  const double *pa = a->mat.data();
+  const double *pb = b->mat.data();
+  double acc = 0.0;
+  for (Eigen::Index i = 0; i < na; ++i) {
+    acc += pa[i] * pb[i];
+  }
+  return acc;
 }
 
 double mat_norm(const MatrixBox *a) noexcept {

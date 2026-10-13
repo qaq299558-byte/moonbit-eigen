@@ -69,9 +69,18 @@ jobs:
         run: moon test --target native selftest
 
       # 完整测试（含 Eigen 绑定）
+      #
+      # ⚠️ 必须显式指定包名，不能只写 `moon test --target native`。
+      # 实测（moon 0.1.20261012）：整模块跑时，**声明了 native-stub 的库包**
+      # 会被额外尝试链接成 .exe，而库包没有 main，于是：
+      #     libcmt.lib(exe_main.obj) : error LNK2019: 无法解析的外部符号 main
+      #     src.exe : fatal error LNK1120
+      # 对照实验：一个没有 stub 的纯库包（probe）用 `moon build` 完全正常，
+      # 所以触发条件是 native-stub。指定包名时只走 test 目标，不会踩到。
+      # 相关记录见 docs/PITFALLS.md。
       - name: Full native tests
         shell: pwsh
-        run: moon test --target native
+        run: moon test --target native src
 
       - name: Run examples
         shell: pwsh

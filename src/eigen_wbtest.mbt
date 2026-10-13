@@ -198,6 +198,26 @@ test "内积" {
 }
 
 ///|
+test "内积：形状不同且都不是向量时返回 Err（不触发 Eigen 断言）" {
+  // 2×3 与 3×2 元素个数都是 6，但形状不同、也都不是向量。
+  // 早期实现只检查元素个数，会穿透到 Eigen 的 cwiseProduct，
+  // 触发 CwiseBinaryOp.h 里的形状断言导致进程崩溃（实测 exit 0xc0000409）。
+  // 现在应当在 MoonBit 侧就被拦下。
+  let a = match Matrix::from_array(2, 3, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]) {
+    Ok(m) => m
+    Err(msg) => abort("构造失败: \{msg}")
+  }
+  let b = match Matrix::from_array(3, 2, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]) {
+    Ok(m) => m
+    Err(msg) => abort("构造失败: \{msg}")
+  }
+  match a.dot(b) {
+    Ok(_) => abort("应当失败：2×3 与 3×2 形状不同且都不是向量")
+    Err(msg) => if msg == "" { abort("错误信息不应为空") }
+  }
+}
+
+///|
 test "解线性方程组 Ax=b" {
   // [[2,1],[1,3]] x = [3,5]  =>  x = [0.8, 1.4]
   let a = match Matrix::from_array(2, 2, [2.0, 1.0, 1.0, 3.0]) {

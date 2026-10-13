@@ -199,10 +199,25 @@ pub fn Matrix::solve(self : Matrix, b : Matrix) -> Result[Matrix, String] {
 }
 
 ///|
-/// 内积：同尺寸时为其逐元素乘积之和（向量即点积）。
+/// 内积（逐元素乘积之和）。
+///
+/// 契约（与 src/eigen_shim.cpp 的 mat_dot 保持一致）：
+///   · 形状完全相同（行、列都相同）→ 逐元素内积
+///   · 两者都是向量（行向量或列向量）且元素个数相同 → 向量点积
+///     （因此 1×3 与 3×1 可以相乘，这是最自然的用法）
+///   · 其它情况 → 返回 Err
+///
+/// 注意：早期版本只检查"元素个数相同"，结果 1×3 与 3×1 会穿透到
+/// Eigen 的 cwiseProduct，触发形状断言而崩溃。现在两侧都按上面的规则检查。
 pub fn Matrix::dot(self : Matrix, other : Matrix) -> Result[Double, String] {
+  let same_shape = self.rows() == other.rows() && self.cols() == other.cols()
+  let self_is_vector = self.rows() == 1 || self.cols() == 1
+  let other_is_vector = other.rows() == 1 || other.cols() == 1
   if self.rows() * self.cols() != other.rows() * other.cols() {
     return Err("内积要求两个矩阵元素个数相同")
+  }
+  if !same_shape && !(self_is_vector && other_is_vector) {
+    return Err("内积要求形状相同，或两者都是元素个数相同的向量")
   }
   Ok(mb_eigen_matrix_dot(self.handle, other.handle))
 }
@@ -250,9 +265,24 @@ pub fn Matrix::to_string(self : Matrix) -> String {
       if j > 0 {
         s = s + ", "
       }
-      s = s + "\{mb_eigen_matrix_get(self.handle, i, j)}"
+      s = s + "\{trim_float_noise(mb_eigen_matrix_get(self.handle, i, j))}"
     }
     s = s + "]"
   }
   s
+}
+
+///|
+/// 抹掉浮点显示的噪声。
+///
+/// 直接用 Show 插值一个 Double 会打印出 `0.7999999999999999` 这种结果
+/// （0.8 在二进制浮点里不可精确表示）。这里先按 1e6 取整再缩回，
+/// 让常见的数值显示成人眼期待的样子：0.8、1.4、50、0.333333。
+///
+/// 说明：这不是定点格式化（不做列对齐），只是把噪声抹掉。
+/// 用它而不是手写定点格式化的理由见 docs/DECISIONS.md D8 ——
+/// 当初因为 API 未经确认而回避了格式化，现在 `Double::round` 已在本机
+/// builtin 的接口清单中确认存在，于是用最简单可靠的方式补回来。
+fn trim_float_noise(v : Double) -> Double {
+  (v * 1000000.0).round() / 1000000.0
 }

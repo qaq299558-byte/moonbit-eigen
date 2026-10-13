@@ -19,6 +19,11 @@ import {
   "moonbitlang/core/encoding/utf8",
 }
 
+// ⚠️ 必须显式声明为库包（理由见 src/moon.pkg 的注释）：
+// 否则 moon build --target native 会尝试链接 selftest.exe，
+// 而库包没有 main → LNK2019: 无法解析的外部符号 main。
+pkgtype(kind: "library")
+
 options(
   "native-stub": [ "smoke_stub.cpp" ],
 
