@@ -173,3 +173,32 @@ v2 应补一个 `eigen_test.mbt`，用包别名（预计是 `@src`）调用公�
 
 **结论**：Plan B 是"保证 10/31 交得出东西"的兜底，不是终态；
 如果最终走 Plan B，必须在 README 的 Limitations 里写明单平台限制。
+
+---
+
+## D11 · 2026-10-13 · 补上 `builtin` 的显式 import
+
+**决策**：在 `src/moon.pkg` 与三个示例的 `moon.pkg` 中显式加入
+`"moonbitlang/core/builtin"`。
+
+**依据**：直接读取官方 `moonbitlang/core` 仓库里的配置文件原文（经 GitHub API
+取回并 base64 解码），发现**连 core 自己的包都显式 import builtin**：
+
+```moonbit
+// moonbitlang/core 的 double/moon.pkg 原文
+import {
+  "moonbitlang/core/builtin",
+}
+```
+
+**同一次核实还确认了两件事**：
+
+1. **包导入路径的格式是 `<模块名>/<包目录>`**。core 里写作 `"moonbitlang/core/double"`
+   （其模块名就是 `moonbitlang/core`），因此本项目示例里的 `"moonbit-eigen/src"` 写法正确
+   —— 这一条此前属于"猜测"，现已消除。
+2. 测试专用导入的写法是 `} for "test"` / `} for "wbtest"`，别名写作 `"path" @alias`
+   （core 里甚至有 `@internal/strconv` 这种带斜杠的别名）。
+
+**为什么值得记一条**：这类"配置文件的语法细节"编译器报错信息往往不直观，
+而**读官方仓库自己的配置文件**比读文档更快得到确定答案。
+这也是本轮把"未验证假设"从 6 条压到 3 条的又一次同类操作。

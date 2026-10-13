@@ -6,6 +6,8 @@
 // 而是真的能让 MoonBit 写出有实际用途的数值代码。
 
 import {
+  // core 的普通包需要显式 import（见 src/moon.pkg 的说明）
+  "moonbitlang/core/builtin",
   "moonbit-eigen/src" @eigen,
 }
 

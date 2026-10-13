@@ -236,6 +236,18 @@ MoonBit 侧用 `@utf8.decode_lossy` 解码 —— 这是官方 agent skill 推�
 - [ ] 若将来要加 BlackBox 测试，当前包的别名是否为 `@src`
 - [ ] `Result[T, String]` 作为公开 API 返回类型时的 `match` 写法（本文件按 `Ok(v) => ...` 写）
 
+**本轮通过核实官方源码而确认的语法**（证据：`moonbitlang/core` 的 `double/moon.pkg`
+与 `json/moon.pkg`，经 base64 解码读取原文）：
+
+- ✅ **包导入路径 = `<模块名>/<包目录>`**。core 里写作 `"moonbitlang/core/double"`
+  （模块名 `moonbitlang/core`），因此本项目的 `"moonbit-eigen/src"` 写法正确。
+- ✅ **`builtin` 需要显式 import**。连 core 自己的包都写 `"moonbitlang/core/builtin"`，
+  否则触发 `core_package_not_imported` 警告（警告 id 71）。已补进 `src/moon.pkg` 与三个示例。
+- ✅ **别名语法** `"path" @alias`、**测试专用导入** `} for "test"` / `} for "wbtest"`
+  的写法均与官方一致（本项目暂未用到后两者）。
+- ✅ `_test.mbt`(BlackBox) / `_wbtest.mbt`(WhiteBox) 的可见性差异有官方文档明确说明
+  （见 DECISIONS D9），不再是"待验证"。
+
 **已在本轮通过改用基础语法而消除的不确定符号**（见 DECISIONS D8）：
 
 - ✅ ~~`FixedArray::from_array`~~ → 改为 `FixedArray::make` + 下标赋值

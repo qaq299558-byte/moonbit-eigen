@@ -3,8 +3,13 @@
 // 每一条取舍都有出处，详见 docs/PITFALLS.md。
 
 import {
-  // C 侧返回 UTF-8 字节，MoonBit 侧解码。
-  // core 的普通包需要显式 import 才能用 @utf8 别名。
+  // core 的普通包需要显式 import —— 连 moonbitlang/core 自己的包
+  // （如 double/moon.pkg）都写了这一行，否则会触发
+  // core_package_not_imported 警告（警告 id 71）。
+  // 我们的代码用到 Array / FixedArray / String / Result / abort 等 builtin 内容。
+  "moonbitlang/core/builtin",
+
+  // C 侧返回 UTF-8 字节，MoonBit 侧解码，需要 @utf8 别名。
   "moonbitlang/core/encoding/utf8" @utf8,
 }
 

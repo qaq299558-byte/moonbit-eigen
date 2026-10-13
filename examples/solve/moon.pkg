@@ -5,6 +5,8 @@
 // [VERIFY] 同模块内的包导入路径格式需在工具链就绪后确认。
 
 import {
+  // core 的普通包需要显式 import（见 src/moon.pkg 的说明）
+  "moonbitlang/core/builtin",
   "moonbit-eigen/src" @eigen,
 }
 
